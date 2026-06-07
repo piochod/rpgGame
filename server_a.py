@@ -31,7 +31,7 @@ class HeistGameServicer(heist_pb2_grpc.HeistGameServicer):
         return heist_pb2.VoteResponse(vote_granted=True)
 
 
-def server():
+def server() -> None:
     """Starts the gRPC server for Server A."""
     # Set up a gRPC server with 10 worker threads
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
