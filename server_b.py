@@ -1,10 +1,11 @@
-import logging
+"""Server B: The Hacker's Server that communicates with the Physical World Server."""
 import grpc
-
 import heist_pb2
 import heist_pb2_grpc
+from logger_config import get_logger
 
-logger = logging.getLogger(__name__)
+
+logger = get_logger(__name__)
 
 
 def attempt_hack(door_id: str, hacker_id: str) -> None:
@@ -19,7 +20,7 @@ def attempt_hack(door_id: str, hacker_id: str) -> None:
 
         # Make the synchronous call and wait for the response
         logger.info(f"[SERVER B] Executing hack on {door_id}...")
-        response = stub.UnlockDoor(request)
+        response = stub.unlockDoor(request)
 
         # Handle the response
         if response.success:

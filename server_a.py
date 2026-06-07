@@ -1,12 +1,13 @@
-import logging
+"""Server A: The Physical World Server that handles interactions with the physical environment."""
 import time
 from concurrent import futures
 import grpc
 import heist_pb2
 import heist_pb2_grpc
+from logger_config import get_logger
 
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class HeistGameServicer(heist_pb2_grpc.HeistGameServicer):
