@@ -1,0 +1,31 @@
+// heist.proto
+syntax = "proto3";
+
+// This defines the "Methods" servers can call on each other
+service HeistGame {
+  // Hacker asks Infiltrator's server to open a door
+  rpc UnlockDoor (DoorRequest) returns (ActionResponse) {}
+  
+  // For the Maekawa Algorithm (Mutual Exclusion)
+  rpc RequestVote (VoteRequest) returns (VoteResponse) {}
+}
+
+// Data structures for the requests and responses
+message DoorRequest {
+  string door_id = 1;
+  string hacker_id = 2;
+}
+
+message ActionResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message VoteRequest {
+  string requesting_node_id = 1;
+  int64 timestamp = 2; // Crucial for Maekawa to resolve ties
+}
+
+message VoteResponse {
+  bool vote_granted = 1;
+}
