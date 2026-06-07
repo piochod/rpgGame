@@ -34,14 +34,14 @@ class HeistGameServicer(heist_pb2_grpc.HeistGameServicer):
 def server() -> None:
     """Starts the gRPC server for Server A."""
     # Set up a gRPC server with 10 worker threads
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    grpc_server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
 
     # Attach our HeistGame implementation to the server
-    heist_pb2_grpc.add_HeistGameServicer_to_server(HeistGameServicer(), server)
+    heist_pb2_grpc.add_HeistGameServicer_to_server(HeistGameServicer(), grpc_server)
 
     # Tell the server to listen on port 50051
-    server.add_insecure_port('[::]:50051')
-    server.start()
+    grpc_server.add_insecure_port('[::]:50051')
+    grpc_server.start()
     logger.info("[SERVER A] Physical World Server is running on port 50051...")
 
     # Keep the server running
@@ -49,7 +49,7 @@ def server() -> None:
         while True:
             time.sleep(86400)
     except KeyboardInterrupt:
-        server.stop(0)
+        grpc_server.stop(0)
         logger.info("[SERVER A] Physical World Server has stopped.")
 
 
