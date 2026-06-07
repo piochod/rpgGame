@@ -24,21 +24,23 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0bheist.proto\"1\n\x0b\x44oorRequest\x12\x0f\n\x07\x64oor_id\x18\x01 \x01(\t\x12\x11\n\thacker_id\x18\x02 \x01(\t\"2\n\x0e\x41\x63tionResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"<\n\x0bVoteRequest\x12\x1a\n\x12requesting_node_id\x18\x01 \x01(\t\x12\x11\n\ttimestamp\x18\x02 \x01(\x03\"$\n\x0cVoteResponse\x12\x14\n\x0cvote_granted\x18\x01 \x01(\x08\x32h\n\tHeistGame\x12-\n\nunlockDoor\x12\x0c.DoorRequest\x1a\x0f.ActionResponse\"\x00\x12,\n\x0brequestVote\x12\x0c.VoteRequest\x1a\r.VoteResponse\"\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0bheist.proto\"5\n\rTargetRequest\x12\x11\n\ttarget_id\x18\x01 \x01(\t\x12\x11\n\thacker_id\x18\x02 \x01(\t\";\n\rAccessRequest\x12\x17\n\x0f\x61\x63\x63\x65ss_point_id\x18\x01 \x01(\t\x12\x11\n\thacker_id\x18\x02 \x01(\t\"2\n\x0e\x41\x63tionResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"<\n\x0bVoteRequest\x12\x1a\n\x12requesting_node_id\x18\x01 \x01(\t\x12\x11\n\ttimestamp\x18\x02 \x01(\x03\"$\n\x0cVoteResponse\x12\x14\n\x0cvote_granted\x18\x01 \x01(\x08\x32\x8a\x02\n\tHeistGame\x12/\n\nunlockDoor\x12\x0e.TargetRequest\x1a\x0f.ActionResponse\"\x00\x12\x32\n\rdisableCamera\x12\x0e.TargetRequest\x1a\x0f.ActionResponse\"\x00\x12\x31\n\x0c\x64isableLaser\x12\x0e.TargetRequest\x1a\x0f.ActionResponse\"\x00\x12\x37\n\x12grantNetworkAccess\x12\x0e.AccessRequest\x1a\x0f.ActionResponse\"\x00\x12,\n\x0brequestVote\x12\x0c.VoteRequest\x1a\r.VoteResponse\"\x00\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'heist_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_DOORREQUEST']._serialized_start=15
-  _globals['_DOORREQUEST']._serialized_end=64
-  _globals['_ACTIONRESPONSE']._serialized_start=66
-  _globals['_ACTIONRESPONSE']._serialized_end=116
-  _globals['_VOTEREQUEST']._serialized_start=118
-  _globals['_VOTEREQUEST']._serialized_end=178
-  _globals['_VOTERESPONSE']._serialized_start=180
-  _globals['_VOTERESPONSE']._serialized_end=216
-  _globals['_HEISTGAME']._serialized_start=218
-  _globals['_HEISTGAME']._serialized_end=322
+  _globals['_TARGETREQUEST']._serialized_start=15
+  _globals['_TARGETREQUEST']._serialized_end=68
+  _globals['_ACCESSREQUEST']._serialized_start=70
+  _globals['_ACCESSREQUEST']._serialized_end=129
+  _globals['_ACTIONRESPONSE']._serialized_start=131
+  _globals['_ACTIONRESPONSE']._serialized_end=181
+  _globals['_VOTEREQUEST']._serialized_start=183
+  _globals['_VOTEREQUEST']._serialized_end=243
+  _globals['_VOTERESPONSE']._serialized_start=245
+  _globals['_VOTERESPONSE']._serialized_end=281
+  _globals['_HEISTGAME']._serialized_start=284
+  _globals['_HEISTGAME']._serialized_end=550
 # @@protoc_insertion_point(module_scope)

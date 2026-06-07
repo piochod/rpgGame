@@ -26,8 +26,7 @@ if _version_not_supported:
 
 
 class HeistGameStub:
-    """This defines the "Methods" servers can call on each other
-    """
+    """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
         """Constructor.
@@ -37,7 +36,22 @@ class HeistGameStub:
         """
         self.unlockDoor = channel.unary_unary(
                 '/HeistGame/unlockDoor',
-                request_serializer=heist__pb2.DoorRequest.SerializeToString,
+                request_serializer=heist__pb2.TargetRequest.SerializeToString,
+                response_deserializer=heist__pb2.ActionResponse.FromString,
+                _registered_method=True)
+        self.disableCamera = channel.unary_unary(
+                '/HeistGame/disableCamera',
+                request_serializer=heist__pb2.TargetRequest.SerializeToString,
+                response_deserializer=heist__pb2.ActionResponse.FromString,
+                _registered_method=True)
+        self.disableLaser = channel.unary_unary(
+                '/HeistGame/disableLaser',
+                request_serializer=heist__pb2.TargetRequest.SerializeToString,
+                response_deserializer=heist__pb2.ActionResponse.FromString,
+                _registered_method=True)
+        self.grantNetworkAccess = channel.unary_unary(
+                '/HeistGame/grantNetworkAccess',
+                request_serializer=heist__pb2.AccessRequest.SerializeToString,
                 response_deserializer=heist__pb2.ActionResponse.FromString,
                 _registered_method=True)
         self.requestVote = channel.unary_unary(
@@ -48,18 +62,43 @@ class HeistGameStub:
 
 
 class HeistGameServicer:
-    """This defines the "Methods" servers can call on each other
-    """
+    """Missing associated documentation comment in .proto file."""
 
     def unlockDoor(self, request, context):
-        """Hacker asks Infiltrator's server to open a door
+        """---------------------------------------------------------
+        HACKER ACTIONS (Called from Server B, executed on Server A)
+        ---------------------------------------------------------
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def disableCamera(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def disableLaser(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def grantNetworkAccess(self, request, context):
+        """---------------------------------------------------------
+        INFILTRATOR ACTIONS (Called from Server A, executed on Server B)
+        ---------------------------------------------------------
+        Infiltrator plugs in USB to give Hacker access to the next zone
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def requestVote(self, request, context):
-        """For the Maekawa Algorithm (Mutual Exclusion)
+        """---------------------------------------------------------
+        DISTRIBUTED ALGORITHMS (The Maekawa Vault Download)
+        ---------------------------------------------------------
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -70,7 +109,22 @@ def add_HeistGameServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'unlockDoor': grpc.unary_unary_rpc_method_handler(
                     servicer.unlockDoor,
-                    request_deserializer=heist__pb2.DoorRequest.FromString,
+                    request_deserializer=heist__pb2.TargetRequest.FromString,
+                    response_serializer=heist__pb2.ActionResponse.SerializeToString,
+            ),
+            'disableCamera': grpc.unary_unary_rpc_method_handler(
+                    servicer.disableCamera,
+                    request_deserializer=heist__pb2.TargetRequest.FromString,
+                    response_serializer=heist__pb2.ActionResponse.SerializeToString,
+            ),
+            'disableLaser': grpc.unary_unary_rpc_method_handler(
+                    servicer.disableLaser,
+                    request_deserializer=heist__pb2.TargetRequest.FromString,
+                    response_serializer=heist__pb2.ActionResponse.SerializeToString,
+            ),
+            'grantNetworkAccess': grpc.unary_unary_rpc_method_handler(
+                    servicer.grantNetworkAccess,
+                    request_deserializer=heist__pb2.AccessRequest.FromString,
                     response_serializer=heist__pb2.ActionResponse.SerializeToString,
             ),
             'requestVote': grpc.unary_unary_rpc_method_handler(
@@ -87,8 +141,7 @@ def add_HeistGameServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class HeistGame:
-    """This defines the "Methods" servers can call on each other
-    """
+    """Missing associated documentation comment in .proto file."""
 
     @staticmethod
     def unlockDoor(request,
@@ -105,7 +158,88 @@ class HeistGame:
             request,
             target,
             '/HeistGame/unlockDoor',
-            heist__pb2.DoorRequest.SerializeToString,
+            heist__pb2.TargetRequest.SerializeToString,
+            heist__pb2.ActionResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def disableCamera(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/HeistGame/disableCamera',
+            heist__pb2.TargetRequest.SerializeToString,
+            heist__pb2.ActionResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def disableLaser(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/HeistGame/disableLaser',
+            heist__pb2.TargetRequest.SerializeToString,
+            heist__pb2.ActionResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def grantNetworkAccess(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/HeistGame/grantNetworkAccess',
+            heist__pb2.AccessRequest.SerializeToString,
             heist__pb2.ActionResponse.FromString,
             options,
             channel_credentials,

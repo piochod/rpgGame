@@ -1,36 +1,52 @@
 """Server B: The Hacker's Server that communicates with the Physical World Server."""
+import time
 import grpc
 import heist_pb2
 import heist_pb2_grpc
 from logger_config import get_logger
 
-
 logger = get_logger(__name__)
 
 
-def attempt_hack(door_id: str, hacker_id: str) -> None:
-    """Attempts to hack a door by communicating with the Physical World Server."""
-    logger.info(f"[SERVER B] Connecting to Physical World Server...")
+def run_integration_test() -> None:
+    logger.info("[SERVER B] Connecting to Physical World Server...")
+
     with grpc.insecure_channel('localhost:50051') as channel:
-        # Create a "stub" (the client that knows how to call the server)
         stub = heist_pb2_grpc.HeistGameStub(channel)
 
-        # Create the data payload matching the .proto file
-        request = heist_pb2.DoorRequest(door_id=door_id, hacker_id=hacker_id)
+        # --- TEST 1: Disable a camera (Should ALWAYS work) ---
+        logger.info("="*10 + "TEST 1: Disabling Camera" + "="*10)
+        cam_req = heist_pb2.TargetRequest(target_id="cam_lobby_01", hacker_id="neo_99")
+        response = stub.disableCamera(cam_req)
+        logger.info(f"Result: {response.success} | {response.message}")
+        time.sleep(2)
 
-        # Make the synchronous call and wait for the response
-        logger.info(f"[SERVER B] Executing hack on {door_id}...")
-        response = stub.unlockDoor(request)
+        # --- TEST 2: Hack Door WITHOUT USB (Should FAIL) ---
+        logger.info("="*10 + "TEST 2: Hacking door_01 WITHOUT USB" + "="*10)
+        door_req = heist_pb2.TargetRequest(target_id="door_01", hacker_id="neo_99")
+        response = stub.unlockDoor(door_req)
+        logger.info(f"Result: {response.success} | {response.message}")
+        time.sleep(2)
 
-        # Handle the response
-        if response.success:
-            logger.info(f"[SERVER B] SUCCESS: {response.message}")
-        else:
-            logger.info(f"[SERVER B] FAILED: {response.message}")
+        # --- TEST 3: Infiltrator plugs in USB in Lobby ---
+        logger.info("="*10 + "TEST 3: Infiltrator plugs USB into Lobby" + "="*10)
+        net_req = heist_pb2.AccessRequest(access_point_id="lobby", hacker_id="ghost_1") 
+        response = stub.grantNetworkAccess(net_req)
+        logger.info(f"Result: {response.success} | {response.message}")
+        time.sleep(2)
+
+        # --- TEST 4: Hack Door WITH USB (Should SUCCEED) ---
+        logger.info("="*10 + "TEST 4: Hacking door_01 WITH USB" + "="*10)
+        response = stub.unlockDoor(door_req)
+        logger.info(f"Result: {response.success} | {response.message}")
+        time.sleep(2)
+
+        # --- TEST 5: Hack Vault Door (Should FAIL) ---
+        logger.info("="*10 + "TEST 5: Hacking Vault Door (Wrong Zone)" + "="*10)
+        vault_req = heist_pb2.TargetRequest(target_id="door_vault", hacker_id="neo_99")
+        response = stub.unlockDoor(vault_req)
+        logger.info(f"Result: {response.success} | {response.message}")
 
 
 if __name__ == '__main__':
-    # Simulate the Hacker finishing a mini-game and calling the function
-    attempt_hack(door_id="door_01", hacker_id="neo_99")
-    logger.info("-" * 30)
-    attempt_hack(door_id="door_fake", hacker_id="neo_99")
+    run_integration_test()

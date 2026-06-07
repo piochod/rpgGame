@@ -1,18 +1,34 @@
-// heist.proto
 syntax = "proto3";
 
-// This defines the "Methods" servers can call on each other
 service HeistGame {
-  // Hacker asks Infiltrator's server to open a door
-  rpc unlockDoor (DoorRequest) returns (ActionResponse) {}
-  
-  // For the Maekawa Algorithm (Mutual Exclusion)
+  // ---------------------------------------------------------
+  // HACKER ACTIONS (Called from Server B, executed on Server A)
+  // ---------------------------------------------------------
+  rpc unlockDoor (TargetRequest) returns (ActionResponse) {}
+  rpc disableCamera (TargetRequest) returns (ActionResponse) {}
+  rpc disableLaser (TargetRequest) returns (ActionResponse) {}
+
+  // ---------------------------------------------------------
+  // INFILTRATOR ACTIONS (Called from Server A, executed on Server B)
+  // ---------------------------------------------------------
+  // Infiltrator plugs in USB to give Hacker access to the next zone
+  rpc grantNetworkAccess (AccessRequest) returns (ActionResponse) {}
+
+  // ---------------------------------------------------------
+  // DISTRIBUTED ALGORITHMS (The Maekawa Vault Download)
+  // ---------------------------------------------------------
   rpc requestVote (VoteRequest) returns (VoteResponse) {}
 }
 
-// Data structures for the requests and responses
-message DoorRequest {
-  string door_id = 1;
+// --- Reusable Data Payloads ---
+
+message TargetRequest {
+  string target_id = 1; // Can be "door_01", "camera_02", or "laser_01"
+  string hacker_id = 2;
+}
+
+message AccessRequest {
+  string access_point_id = 1; // e.g., "level_2_router"
   string hacker_id = 2;
 }
 
@@ -21,9 +37,10 @@ message ActionResponse {
   string message = 2;
 }
 
+// Data for the Maekawa mutual exclusion algorithm
 message VoteRequest {
   string requesting_node_id = 1;
-  int64 timestamp = 2; // Crucial for Maekawa to resolve ties
+  int64 timestamp = 2; 
 }
 
 message VoteResponse {
