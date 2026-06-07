@@ -1,8 +1,8 @@
 """Server B: The Hacker's Server that communicates with the Physical World Server."""
 import time
 import grpc
-import grcp.heist_pb2 as heist_pb2
-import grcp.heist_pb2_grpc as heist_pb2_grpc
+import grcp_server.heist_pb2 as heist_pb2
+import grcp_server.heist_pb2_grpc as heist_pb2_grpc
 from logger_config import get_logger
 
 logger = get_logger(__name__)
