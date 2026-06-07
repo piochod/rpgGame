@@ -4,6 +4,7 @@ import grpc
 import grcp_server.heist_pb2 as heist_pb2
 import grcp_server.heist_pb2_grpc as heist_pb2_grpc
 from logger_config import get_logger
+from rabbit_server import start_background_listener
 
 logger = get_logger(__name__)
 
@@ -11,7 +12,7 @@ logger = get_logger(__name__)
 def run_integration_test() -> None:
     logger.info("[SERVER B] Connecting to Physical World Server...")
 
-    with grpc.insecure_channel('localhost:50051') as channel:
+    with grpc.insecure_channel('server_a:50051') as channel:
         stub = heist_pb2_grpc.HeistGameStub(channel)
 
         # --- TEST 1: Disable a camera (Should ALWAYS work) ---
@@ -49,4 +50,10 @@ def run_integration_test() -> None:
 
 
 if __name__ == '__main__':
+    start_background_listener()  # Start RabbitMQ listener in the background
+
+    logger.info("Waiting for RabbitMQ listener to initialize...")
+    time.sleep(2)  # Give some time for the listener to initialize
+
+    logger.info("Starting integration tests...")
     run_integration_test()

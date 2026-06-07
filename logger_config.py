@@ -9,4 +9,8 @@ def get_logger(module_name: str) -> logging.Logger:
         format='[%(asctime)s][%(levelname)s]%(message)s',
         datefmt='%H:%M:%S'
     )
+
+    logging.getLogger("pika").setLevel(logging.WARNING)
+    logging.getLogger("grpc").setLevel(logging.WARNING)
+
     return logging.getLogger(module_name)

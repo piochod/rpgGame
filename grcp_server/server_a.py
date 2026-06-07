@@ -5,6 +5,7 @@ import grpc
 import grcp_server.heist_pb2 as heist_pb2
 import grcp_server.heist_pb2_grpc as heist_pb2_grpc
 from logger_config import get_logger
+from rabbit_server import publish_event
 
 
 logger = get_logger(__name__)
@@ -40,6 +41,13 @@ class HeistGameServicer(heist_pb2_grpc.HeistGameServicer):
 
         if not self._zone_usb_status[target_zone]:
             logger.info(f"[SERVER A] USB not plugged in for {target_zone}. Access denied to {request.target_id}.")
+
+            publish_event("game.alarm", {
+                "level": "HIGH", 
+                "location": target_zone, 
+                "message": f"Unauthorized hack attempt detected on {request.target_id}!"
+            })
+
             return heist_pb2.ActionResponse(success=False, message=f"USB override required for {target_zone}.")
 
         logger.info(f"[SERVER A] USB is plugged in for {target_zone}. Unlocking {request.target_id}...")
