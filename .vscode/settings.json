@@ -1,0 +1,93 @@
+{
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.quickSuggestions": {
+      "strings": true
+    },
+    "editor.rulers": [100],
+    "editor.formatOnSave": true,
+    "editor.suggest.insertMode": "replace"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.quickSuggestions": {
+      "strings": true
+    },
+    "editor.rulers": [100],
+    "editor.formatOnSave": true,
+    "editor.suggest.insertMode": "replace"
+  },
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2,
+    "editor.formatOnSave": true
+  },
+  "[python]": {
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    },
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.rulers": [120],
+    "editor.formatOnSave": true
+  },
+  "[yaml]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.autoIndent": "full",
+    "editor.insertSpaces": true,
+    "editor.tabSize": 4
+  },
+  "black-formatter.args": ["--config", ".github/linters/.python-black"],
+  "black-formatter.importStrategy": "fromEnvironment",
+  "editor.formatOnSave": true,
+  "editor.renderWhitespace": "trailing",
+  "editor.rulers": [80, 100, 120],
+  "files.associations": {
+    ".pydocstylerc": "plaintext"
+  },
+  "files.autoSave": "afterDelay",
+  "files.exclude": {
+    "**/build": true
+  },
+  "flake8.args": ["--config", ".github/linters/.flake8"],
+  "flake8.importStrategy": "fromEnvironment",
+  "github.copilot.enable": {
+    "markdown": true
+  },
+  "isort.args": ["--settings-file", ".github/linters/.isort.cfg"],
+  "isort.check": true,
+  "json.format.keepLines": true,
+  "markdownlint.config": {
+    "extends": ".github/linters/.markdown-lint.yml"
+  },
+  "markdownlint.lintWorkspaceGlobs": ["**/*.md"],
+  "mypy-type-checker.args": ["--config-file", ".github/linters/.mypy.ini"],
+  "mypy-type-checker.importStrategy": "fromEnvironment",
+  "prettier.configPath": ".vscode/files/.prettierrc.json",
+  "python.envFile": "${workspaceFolder}/.env",
+  "python.analysis.logLevel": "Trace",
+  "python.languageServer": "Pylance",
+  "python.terminal.activateEnvironment": true,
+  "python.terminal.useEnvFile": true,
+  "pylint.enabled": false,
+  "redhat.telemetry.enabled": false,
+  "ruff.configuration": ".vscode/files/ruff.toml",
+  "ruff.codeAction.fixViolation": {
+    "enable": false
+  },
+  "ruff.fixAll": false,
+  "ruff.organizeImports": false,
+  "runTerminalCommand.commands": [
+    {
+      "auto": true,
+      "command": "roi.py {resource}",
+      "name": "Generate Component",
+      "preserve": true
+    },
+    {
+      "auto": true,
+      "command": "vlc {resource}",
+      "name": "Generate Component",
+      "preserve": true
+    }
+  ]
+}
