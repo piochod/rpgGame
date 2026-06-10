@@ -12,6 +12,7 @@ logger = get_logger(__name__)
 
 
 def run_integration_test() -> None:
+    """Runs a series of integration tests against Server A to validate the hacking mechanics."""
     logger.info("[SERVER B] Connecting to Physical World Server...")
 
     with grpc.insecure_channel("server_a:50051") as channel:

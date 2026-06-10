@@ -1,9 +1,12 @@
+"""Helper classes for managing character sprites and player behavior."""
+
 import xml.etree.ElementTree as ET
 
 import pygame
 
 
 class CharacterManager:
+    """Manages character sprites and animations."""
     def __init__(self, image_path: str, xml_path: str, scale: float = 0.5):
         """Loads the sprite sheet and uses the XML to extract all named frames."""
         self.sheet = pygame.image.load(image_path).convert_alpha()
@@ -35,7 +38,15 @@ class CharacterManager:
 
 
 class Player:
-    def __init__(self, char_manager: CharacterManager, start_x: int, start_y: int):
+    """Represents the player character, handling movement and animation."""
+    def __init__(self, char_manager: CharacterManager, start_x: int, start_y: int) -> None:
+        """Represents the player character, handling movement and animation.
+
+        Args:
+            char_manager (CharacterManager): The manager that holds all character frames.
+            start_x (int): The starting x-coordinate of the player.
+            start_y (int): The starting y-coordinate of the player.
+        """
         self.manager = char_manager
         self.x = start_x
         self.y = start_y
@@ -49,8 +60,11 @@ class Player:
         self.is_moving = False
         self.facing_left = False
 
-    def update(self, keys):
-        """Handles WASD input and updates animation frames."""
+    def update(self, keys: pygame.key.ScancodeWrapper) -> None:
+        """Handles WASD input and updates animation frames.
+        Args:
+            keys (pygame.key.ScancodeWrapper): The current state of all keyboard keys.
+        """
         self.is_moving = False
         dx, dy = 0, 0
 
@@ -77,8 +91,12 @@ class Player:
         else:
             self.current_frame_index = 0  # Reset to standing straight
 
-    def draw(self, screen):
-        """Draws the current frame of the player onto the screen."""
+    def draw(self, screen: pygame.Surface) -> None:
+        """Draws the current frame of the player onto the screen.
+
+        Args:
+            screen (pygame.Surface): The surface to draw the player on.
+        """
         if self.is_moving:
             frame_name = self.walk_frames[self.current_frame_index]
         else:
