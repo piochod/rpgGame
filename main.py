@@ -28,9 +28,9 @@ LEVEL_MAP = [
     "W.......................W",
     "W.......................W",
     "W.......................W",
+    "W...................T...W",
     "W.......................W",
-    "W.......................W",
-    "W.......................W",
+    "W...................WWWWW",
     "W.......................W",
     "W.......................W",
     "W.......................W",
@@ -70,18 +70,24 @@ def main() -> None:
     floor_tile = tile_manager.get("floor_plain")
     door_closed_tile = tile_manager.get("door_closed")
     wall_tile = tile_manager.get("wall")
+    terminal_tile = tile_manager.get("terminal")
 
     center_x = (SCREEN_WIDTH // 2) - (TILE_SIZE // 2)
     center_y = (SCREEN_HEIGHT // 2) - (TILE_SIZE // 2)
     player = Player(char_manager, center_x, center_y)
 
     solid_blocks = []
+    terminals = []
+
     for row_index, row_string in enumerate(LEVEL_MAP):
         for col_index, tile_char in enumerate(row_string):
-            if tile_char in ["W", "D"]:
+            if tile_char in ["W", "D", "T"]:
                 x = col_index * TILE_SIZE
                 y = row_index * TILE_SIZE
                 solid_blocks.append(pygame.Rect(x, y, TILE_SIZE, TILE_SIZE))
+
+            if tile_char == "T":
+                terminals.append(pygame.Rect(x, y, TILE_SIZE, TILE_SIZE))
 
     running = True
     while running:
@@ -89,6 +95,20 @@ def main() -> None:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 return
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_e:
+                    reach_box = player.rect.inflate(16, 16)
+                    terminal_index = reach_box.collidelist(terminals)
+
+                    if terminal_index != -1:
+                        logger.info("Player pressed E next to the terminal!")
+                        try:
+                            net_req = heist_pb2.AccessRequest(access_point_id="lobby", hacker_id="ghost_1")
+                            response = grpc_client.grantNetworkAccess(net_req)
+                            logger.info(f"Server Responded: {response.success} | {response.message}")
+                        except Exception as e:
+                            logger.error(f"gRPC Call Failed. Error: {e}")
 
         keys = pygame.key.get_pressed()
         player.update(keys, solid_blocks)
@@ -105,6 +125,8 @@ def main() -> None:
                     screen.blit(wall_tile, (x, y))
                 elif tile_char == "D":
                     screen.blit(door_closed_tile, (x, y))
+                elif tile_char == "T":
+                    screen.blit(terminal_tile, (x, y))
 
         player.draw(screen)
 
