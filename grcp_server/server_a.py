@@ -1,31 +1,29 @@
 """Server A: The Physical World Server that handles interactions with the physical environment."""
+
 import time
 from concurrent import futures
-import grpc
+
 import grcp_server.heist_pb2 as heist_pb2
 import grcp_server.heist_pb2_grpc as heist_pb2_grpc
+import grpc
 from logger_config import get_logger
 from rabbit_server import publish_event
-
 
 logger = get_logger(__name__)
 
 
 class HeistGameServicer(heist_pb2_grpc.HeistGameServicer):
     """gRPC server implementation for Server A, handling physical world interactions."""
+
     def __init__(self) -> None:
         """Initializes the HeistGameServicer."""
         self._door_zones = {
             "door_01": "lobby",
             "door_02": "lobby",
             "door_server_room": "basement",
-            "door_vault": "vault_level"
+            "door_vault": "vault_level",
         }
-        self._zone_usb_status = {
-            "lobby": False,
-            "basement": False,
-            "vault_level": False
-        }
+        self._zone_usb_status = {"lobby": False, "basement": False, "vault_level": False}
         self._disabled_cameras: set[str] = set()
         self._opened_doors: set[str] = set()
 
@@ -42,11 +40,14 @@ class HeistGameServicer(heist_pb2_grpc.HeistGameServicer):
         if not self._zone_usb_status[target_zone]:
             logger.info(f"[SERVER A] USB not plugged in for {target_zone}. Access denied to {request.target_id}.")
 
-            publish_event("game.alarm", {
-                "level": "HIGH", 
-                "location": target_zone, 
-                "message": f"Unauthorized hack attempt detected on {request.target_id}!"
-            })
+            publish_event(
+                "game.alarm",
+                {
+                    "level": "HIGH",
+                    "location": target_zone,
+                    "message": f"Unauthorized hack attempt detected on {request.target_id}!",
+                },
+            )
 
             return heist_pb2.ActionResponse(success=False, message=f"USB override required for {target_zone}.")
 
@@ -54,14 +55,18 @@ class HeistGameServicer(heist_pb2_grpc.HeistGameServicer):
         self._opened_doors.add(request.target_id)
         return heist_pb2.ActionResponse(success=True, message="Door unlocked.")
 
-    def disableCamera(self, request: heist_pb2.TargetRequest, context: grpc.ServicerContext) -> heist_pb2.ActionResponse:
+    def disableCamera(
+        self, request: heist_pb2.TargetRequest, context: grpc.ServicerContext
+    ) -> heist_pb2.ActionResponse:
         """Handles camera disable requests from hackers."""
         logger.info(f"[SERVER A] Received camera disable request from {request.hacker_id} for {request.target_id}...")
         self._disabled_cameras.add(request.target_id)
         logger.info(f"[SERVER A] Camera {request.target_id} disabled.")
         return heist_pb2.ActionResponse(success=True, message="Camera disabled.")
 
-    def grantNetworkAccess(self, request: heist_pb2.AccessRequest, context: grpc.ServicerContext) -> heist_pb2.ActionResponse:
+    def grantNetworkAccess(
+        self, request: heist_pb2.AccessRequest, context: grpc.ServicerContext
+    ) -> heist_pb2.ActionResponse:
         """Handles network access grant requests from hackers."""
         target_zone = request.access_point_id
 
@@ -89,7 +94,7 @@ def start_server() -> None:
     heist_pb2_grpc.add_HeistGameServicer_to_server(HeistGameServicer(), grpc_server)
 
     # Tell the server to listen on port 50051
-    grpc_server.add_insecure_port('[::]:50051')
+    grpc_server.add_insecure_port("[::]:50051")
     grpc_server.start()
     logger.info("[SERVER A] Physical World Server is running on port 50051...")
 
@@ -102,5 +107,5 @@ def start_server() -> None:
         logger.info("[SERVER A] Physical World Server has stopped.")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     start_server()
