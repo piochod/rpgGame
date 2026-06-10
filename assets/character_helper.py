@@ -12,6 +12,10 @@ class CharacterManager:
         tree = ET.parse(xml_path)
         root = tree.getroot()
 
+        self._generate_frames(scale, root)
+
+    def _generate_frames(self, scale: float, root: ET.Element) -> None:
+        """Cuts out all frames from the sprite sheet based on the XML data."""
         for sub in root.findall("SubTexture"):
             name = sub.get("name")
             x = int(sub.get("x"))
