@@ -1,13 +1,14 @@
 {
-    "TILE_SIZE": 32,
-    "tiles": {
-        "floor_plain": {"col": 1, "row": 1},
-        "floor_damaged": {"col": 1, "row": 5},
-        "door_closed": {"col": 7, "row": 5},
-        "door_accepted": {"col": 6, "row": 2},
-        "door_opened": {"col": 7, "row": 2},
-        "box": {"col": 9, "row": 1},
-        "wall": {"col": 7, "row": 0},
-        "terminal": {"col": 8, "row": 2}
-    }
+  "TILE_SIZE": 32,
+  "tiles": {
+    "floor_plain": { "col": 1, "row": 1 },
+    "floor_damaged": { "col": 1, "row": 5 },
+    "door_red": { "col": 7, "row": 5 },
+    "door_green": { "col": 6, "row": 2 },
+    "door_opened": { "col": 7, "row": 2 },
+    "box": { "col": 9, "row": 1 },
+    "wall": { "col": 7, "row": 0 },
+    "terminal": { "col": 8, "row": 2 },
+    "vent": { "col": 2, "row": 3 }
+  }
 }

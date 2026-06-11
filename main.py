@@ -5,6 +5,7 @@ import pygame
 from assets.character_helper import CharacterManager, Player
 from assets.tile_helper import TileManager
 from grcp_server import heist_pb2, heist_pb2_grpc
+from level_manager import LevelManager
 from logger_config import get_logger
 from utils import get_game_config
 
@@ -19,11 +20,11 @@ TILE_SIZE = config["TILE_SIZE"]
 LEVEL_MAP = [
     "WWWWWWWWWWWWWWWWWWWWWWWWW",
     "W.......................W",
-    "W.......WWWWWWWW........W",
-    "W.......W......W........W",
-    "W.......W......D........W",
-    "W.......W......W........W",
-    "W.......WWWWWWWW........W",
+    "W..........WWWWW........W",
+    "W..........W...W........W",
+    "W..........W.V.D........W",
+    "W..........W...W........W",
+    "W..........WWWWW........W",
     "W.......................W",
     "W.......................W",
     "W.......................W",
@@ -40,6 +41,11 @@ LEVEL_MAP = [
 
 
 def init_display() -> tuple[pygame.Surface, pygame.time.Clock]:
+    """Initializes the Pygame display and returns the screen surface and clock.
+
+    Returns:
+        tuple[pygame.Surface, pygame.time.Clock]: The screen surface and clock.
+    """
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("Cyberpunk Heist: Graphics Test")
@@ -48,6 +54,11 @@ def init_display() -> tuple[pygame.Surface, pygame.time.Clock]:
 
 
 def init_grpc_client() -> heist_pb2_grpc.HeistGameStub:
+    """Initializes the gRPC client and returns the stub.
+
+    Returns:
+        heist_pb2_grpc.HeistGameStub: The gRPC client stub.
+    """
     logger.info("Initializing gRPC client...")
     try:
         channel = grpc.insecure_channel("localhost:50051")
@@ -91,7 +102,7 @@ def build_level(level_map) -> tuple[list[pygame.Rect], list[pygame.Rect]]:
     terminals = []
     for row_index, row_string in enumerate(level_map):
         for col_index, tile_char in enumerate(row_string):
-            if tile_char in ("W", "D", "T"):
+            if tile_char in ("W", "D", "T", "G"):
                 x = col_index * TILE_SIZE
                 y = row_index * TILE_SIZE
                 solid_blocks.append(pygame.Rect(x, y, TILE_SIZE, TILE_SIZE))
@@ -100,12 +111,12 @@ def build_level(level_map) -> tuple[list[pygame.Rect], list[pygame.Rect]]:
     return solid_blocks, terminals
 
 
-def handle_events(player: Player, terminals: list[pygame.Rect], grpc_client: heist_pb2_grpc.HeistGameStub) -> bool:
+def handle_events(player: Player, level_manager: LevelManager, grpc_client: heist_pb2_grpc.HeistGameStub) -> bool:
     """Process pygame events. Returns False when the game should quit.
 
     Args:
         player (Player): The player object to check interactions with.
-        terminals (list[pygame.Rect]): A list of terminal positions to check for interactions.
+        level_manager (LevelManager): The level manager to check for interactions with terminals and vents.
         grpc_client (heist_pb2_grpc.HeistGameStub): The gRPC client to send requests when interacting with terminals.
 
     Returns:
@@ -114,69 +125,93 @@ def handle_events(player: Player, terminals: list[pygame.Rect], grpc_client: hei
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             return False
+
         if event.type == pygame.KEYDOWN and event.key == pygame.K_e:
             reach_box = player.rect.inflate(16, 16)
-            terminal_index = reach_box.collidelist(terminals)
+
+            terminal_index = reach_box.collidelist(level_manager.terminal_hitboxes)
             if terminal_index != -1:
-                logger.info("Player pressed E next to the terminal!")
                 try:
                     net_req = heist_pb2.AccessRequest(access_point_id="lobby", hacker_id="ghost_1")
                     response = grpc_client.grantNetworkAccess(net_req)
-                    logger.info(f"Server Responded: {response.success} | {response.message}")
+
+                    if response.success:
+                        level_manager.change_door_state("door_0", "G")
+                        logger.info("Door 0 turned Green! Ready for Hacker.")
+
                 except Exception as e:
                     logger.error(f"gRPC Call Failed. Error: {e}")
+
+            vent_index = reach_box.collidelist(level_manager.vent_hitboxes)
+            if vent_index != -1:
+                logger.info("Player entered the vent! Loading Level 2...")
+                # TODO: Trigger next level load here
+
     return True
 
 
-def render(screen: pygame.Surface, level_map: list[str], tiles: dict[str, pygame.Surface], player: Player) -> None:
-    """Render the game screen.
+def render(screen, level_manager: LevelManager, tiles: dict, player: Player) -> None:
+    """Renders the game screen based on the level map and player position.
 
     Args:
-        screen (pygame.Surface): The screen surface to draw on.
-        level_map (list[str]): The level map represented as a list of strings.
-        tiles (dict[str, pygame.Surface]): A dictionary of tile surfaces.
-        player (Player): The player object to draw.
+        screen (pygame.Surface): The surface to render on.
+        level_manager (LevelManager): The level manager containing the game map and tile information.
+        tiles (dict): A dictionary of tile images keyed by their type.
+        player (Player): The player object to render.
     """
     screen.fill((0, 0, 0))
-    for row_index, row_string in enumerate(level_map):
-        for col_index, tile_char in enumerate(row_string):
-            x = col_index * TILE_SIZE
-            y = row_index * TILE_SIZE
+
+    for row_index, row_list in enumerate(level_manager.game_map):
+        for col_index, tile_char in enumerate(row_list):
+            x = col_index * level_manager.tile_size
+            y = row_index * level_manager.tile_size
+
             screen.blit(tiles["floor"], (x, y))
+
             if tile_char == "W":
                 screen.blit(tiles["wall"], (x, y))
-            elif tile_char == "D":
-                screen.blit(tiles["door_closed"], (x, y))
             elif tile_char == "T":
                 screen.blit(tiles["terminal"], (x, y))
+            elif tile_char == "V":
+                screen.blit(tiles["vent"], (x, y))
+            elif tile_char == "D":
+                screen.blit(tiles["door_red"], (x, y))
+            elif tile_char == "G":
+                screen.blit(tiles["door_green"], (x, y))
+            elif tile_char == "O":
+                screen.blit(tiles["door_open"], (x, y))
+
     player.draw(screen)
     pygame.display.flip()
 
 
 def main() -> None:
+    """Main game loop."""
     screen, clock = init_display()
     grpc_client = init_grpc_client()
 
     tile_manager, char_manager = load_assets()
     tiles = {
         "floor": tile_manager.get("floor_plain"),
-        "door_closed": tile_manager.get("door_closed"),
+        "door_red": tile_manager.get("door_red"),
+        "door_green": tile_manager.get("door_green"),
+        "door_open": tile_manager.get("door_open"),
         "wall": tile_manager.get("wall"),
         "terminal": tile_manager.get("terminal"),
+        "vent": tile_manager.get("vent"),
     }
 
     center_x = (SCREEN_WIDTH // 2) - (TILE_SIZE // 2)
     center_y = (SCREEN_HEIGHT // 2) - (TILE_SIZE // 2)
     player = Player(char_manager, center_x, center_y)
-
-    solid_blocks, terminals = build_level(LEVEL_MAP)
+    level_manager = LevelManager(LEVEL_MAP, TILE_SIZE)
 
     running = True
     while running:
-        running = handle_events(player, terminals, grpc_client)
+        running = handle_events(player, level_manager, grpc_client)
         keys = pygame.key.get_pressed()
-        player.update(keys, solid_blocks)
-        render(screen, LEVEL_MAP, tiles, player)
+        player.update(keys, level_manager.solid_blocks)
+        render(screen, level_manager, tiles, player)
         clock.tick(60)
 
     pygame.quit()
