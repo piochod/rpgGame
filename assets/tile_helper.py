@@ -10,7 +10,11 @@ class SpriteSheet:
     """Handles loading and extracting tiles from a sprite sheet."""
 
     def __init__(self, filename: str) -> None:
-        """Loads the sprite sheet image from the specified filename."""
+        """Loads the sprite sheet image from the specified filename.
+
+        Args:
+            filename (str): The file path to the sprite sheet image.
+        """
         self.sheet = pygame.image.load(filename).convert_alpha()
 
     def get_tile(self, col: int, row: int, width: int, height: int) -> pygame.Surface:

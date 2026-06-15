@@ -17,7 +17,11 @@ SCREEN_HEIGHT = config["SCREEN_HEIGHT"]
 
 
 def init_display() -> tuple[pygame.Surface, pygame.time.Clock]:
-    """Initializes the Pygame display and returns the screen surface and clock object."""
+    """Initializes the Pygame display and returns the screen surface and clock object.
+
+    Returns:
+        tuple: A tuple containing the Pygame screen surface and clock object.
+    """
     pygame.init()
     pygame.font.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -27,7 +31,11 @@ def init_display() -> tuple[pygame.Surface, pygame.time.Clock]:
 
 
 def init_grpc_client() -> heist_pb2_grpc.HeistGameStub:
-    """Initializes the gRPC client and returns a stub for making RPC calls to the server."""
+    """Initializes the gRPC client and returns a stub for making RPC calls to the server.
+
+    Returns:
+        heist_pb2_grpc.HeistGameStub: The gRPC client stub for the HeistGame service.
+    """
     logger.info("Initializing gRPC client...")
     try:
         channel = grpc.insecure_channel("localhost:50051")
@@ -38,7 +46,11 @@ def init_grpc_client() -> heist_pb2_grpc.HeistGameStub:
 
 
 def load_assets() -> tuple[TileManager, CharacterManager, dict]:
-    """Loads game assets and returns the managers and UI elements."""
+    """Loads game assets and returns the managers and UI elements.
+
+    Returns:
+        tuple: A tuple containing the TileManager, CharacterManager, and a dictionary of UI elements.
+    """
     logger.info("Loading assets...")
     try:
         tile_manager = TileManager("resources/tilesetv1.0.png", "resources/tilesetv1.0_config.json")

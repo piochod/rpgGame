@@ -27,6 +27,7 @@ TILE_SIZE = config["TILE_SIZE"]
 
 
 def main() -> None:
+    """Main game loop. Initializes all systems, manages game state, and renders each frame."""
     screen, clock = init_display()
     grpc_client = init_grpc_client()
     tile_manager, char_manager, ui_elements = load_assets()

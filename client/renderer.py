@@ -4,7 +4,14 @@ from levels.level_manager import LevelManager
 
 
 def _draw_button_with_text(screen: pygame.Surface, button, text: str, font: pygame.font.Font) -> None:
-    """Draws a button and centers text on its blue (top) portion."""
+    """Draws a button and centers text on its blue (top) portion.
+
+    Args:
+        screen (pygame.Surface): The surface to draw on.
+        button: The Button object to draw.
+        text (str): The text to render on the button.
+        font (pygame.font.Font): The font to use for rendering the text.
+    """
     button.draw(screen)
     btn_rect = button.rect
     # Blue portion is roughly the top 55% of the button
@@ -14,7 +21,15 @@ def _draw_button_with_text(screen: pygame.Surface, button, text: str, font: pyga
 
 
 def render_menu(screen: pygame.Surface, ui_elements: dict, typed_code: str, fonts: dict, screen_width: int) -> None:
-    """Renders the main menu screen."""
+    """Renders the main menu screen.
+
+    Args:
+        screen (pygame.Surface): The Pygame screen surface.
+        ui_elements (dict): Dictionary of UI Button objects.
+        typed_code (str): Currently unused on this screen.
+        fonts (dict): Dictionary of font objects keyed by name.
+        screen_width (int): The width of the screen in pixels.
+    """
     screen.fill((20, 20, 30))
     title = fonts["title"].render("CYBERPUNK HEIST", True, (0, 255, 255))
     screen.blit(title, (screen_width // 2 - title.get_width() // 2, 100))
@@ -24,7 +39,14 @@ def render_menu(screen: pygame.Surface, ui_elements: dict, typed_code: str, font
 
 
 def render_join_input(screen: pygame.Surface, typed_code: str, fonts: dict, screen_width: int) -> None:
-    """Renders the join game code input screen."""
+    """Renders the join game code input screen.
+
+    Args:
+        screen (pygame.Surface): The Pygame screen surface.
+        typed_code (str): The lobby code typed so far by the user.
+        fonts (dict): Dictionary of font objects keyed by name.
+        screen_width (int): The width of the screen in pixels.
+    """
     screen.fill((20, 20, 30))
     title = fonts["title"].render("JOIN GAME", True, (0, 255, 255))
     screen.blit(title, (screen_width // 2 - title.get_width() // 2, 100))
@@ -40,7 +62,14 @@ def render_join_input(screen: pygame.Surface, typed_code: str, fonts: dict, scre
 
 
 def render_lobby(screen: pygame.Surface, lobby_code: str, fonts: dict, screen_width: int) -> None:
-    """Renders the lobby waiting screen."""
+    """Renders the lobby waiting screen.
+
+    Args:
+        screen (pygame.Surface): The Pygame screen surface.
+        lobby_code (str): The lobby code to display.
+        fonts (dict): Dictionary of font objects keyed by name.
+        screen_width (int): The width of the screen in pixels.
+    """
     screen.fill((20, 20, 30))
     title = fonts["normal"].render(f"LOBBY: {lobby_code}", True, (0, 255, 0))
     screen.blit(title, (screen_width // 2 - title.get_width() // 2, 200))
@@ -61,7 +90,17 @@ def render_hacker(
     target_x: int,
     screen_width: int,
 ) -> None:
-    """Renders the hacker mini-game screen."""
+    """Renders the hacker mini-game screen.
+
+    Args:
+        screen (pygame.Surface): The Pygame screen surface.
+        fonts (dict): Dictionary of font objects keyed by name.
+        is_usb_ready (bool): Whether the USB has been plugged by the infiltrator.
+        hack_progress (int): Number of nodes successfully decrypted (0-3).
+        cursor_x (int): Current x-position of the moving cursor.
+        target_x (int): x-position of the green target zone.
+        screen_width (int): The width of the screen in pixels.
+    """
     screen.fill((10, 20, 10))
     title = fonts["normal"].render("CYBER LINK ACTIVE", True, (0, 255, 0))
     screen.blit(title, (screen_width // 2 - title.get_width() // 2, 100))
@@ -97,7 +136,14 @@ def render_hacker(
 
 
 def render_infiltrator(screen: pygame.Surface, level_manager: LevelManager, tiles: dict, player: Player) -> None:
-    """Renders the infiltrator screen."""
+    """Renders the infiltrator screen.
+
+    Args:
+        screen (pygame.Surface): The Pygame screen surface.
+        level_manager (LevelManager): The current level's manager instance.
+        tiles (dict): Dictionary of tile surfaces keyed by name.
+        player (Player): The player object to draw.
+    """
     screen.fill((0, 0, 0))
     for row_index, row_list in enumerate(level_manager.game_map):
         for col_index, tile_char in enumerate(row_list):

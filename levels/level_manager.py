@@ -95,13 +95,27 @@ class LevelManager:
             logger.error(f"Door {door_id} not found!")
 
     def check_vent_collision(self, player_rect: pygame.Rect) -> bool:
-        """O(1) grid-based check if the player is overlapping any vent tile."""
+        """O(1) grid-based check if the player is overlapping any vent tile.
+
+        Args:
+            player_rect (pygame.Rect): The player's collision rectangle.
+
+        Returns:
+            bool: True if the player's center is on a vent tile.
+        """
         row = player_rect.centery // self.tile_size
         col = player_rect.centerx // self.tile_size
         return (row, col) in self.vent_rects
 
     def check_terminal_collision(self, player_rect: pygame.Rect) -> bool:
-        """O(1) grid-based check if the player is near any terminal tile."""
+        """O(1) grid-based check if the player is near any terminal tile.
+
+        Args:
+            player_rect (pygame.Rect): The player's collision rectangle.
+
+        Returns:
+            bool: True if a terminal is within the player's reach (3x3 neighborhood).
+        """
         reach_box = player_rect.inflate(16, 16)
         row = reach_box.centery // self.tile_size
         col = reach_box.centerx // self.tile_size
@@ -112,7 +126,14 @@ class LevelManager:
         return False
 
     def get_terminal_near_player(self, player_rect: pygame.Rect) -> tuple[int, int] | None:
-        """Returns the (row, col) of the terminal near the player, or None."""
+        """Returns the (row, col) of the terminal near the player, or None.
+
+        Args:
+            player_rect (pygame.Rect): The player's collision rectangle.
+
+        Returns:
+            tuple[int, int] | None: Grid position of the nearby terminal, or None.
+        """
         reach_box = player_rect.inflate(16, 16)
         row = reach_box.centery // self.tile_size
         col = reach_box.centerx // self.tile_size
@@ -124,7 +145,14 @@ class LevelManager:
         return None
 
     def get_door_for_terminal(self, terminal_pos: tuple[int, int]) -> str | None:
-        """O(1) lookup: returns the door_id that the terminal at this position unlocks."""
+        """O(1) lookup: returns the door_id that the terminal at this position unlocks.
+
+        Args:
+            terminal_pos (tuple[int, int]): The (row, col) grid position of the terminal.
+
+        Returns:
+            str | None: The door_id string (e.g. "door_0"), or None if not mapped.
+        """
         door_pos = self._terminal_to_door_pos.get(terminal_pos)
         if door_pos is None:
             return None

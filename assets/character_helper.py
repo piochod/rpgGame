@@ -9,7 +9,13 @@ class CharacterManager:
     """Manages character sprites and animations."""
 
     def __init__(self, image_path: str, xml_path: str, target_size: tuple[int, int] = (32, 32)) -> None:
-        """Loads the sprite sheet and uses the XML to extract all named frames."""
+        """Loads the sprite sheet and uses the XML to extract all named frames.
+
+        Args:
+            image_path (str): Path to the character sprite sheet (PNG).
+            xml_path (str): Path to the XML file that defines frame names and positions.
+            target_size (tuple[int, int]): The desired size for each frame (width, height). Default is (32, 32).
+        """
         self.sheet = pygame.image.load(image_path).convert_alpha()
         self.frames = {}
         self.target_size = target_size
@@ -20,7 +26,12 @@ class CharacterManager:
         self._generate_frames(target_size, root)
 
     def _generate_frames(self, target_size: tuple[int, int], root: ET.Element) -> None:
-        """Cuts out all frames from the sprite sheet based on the XML data."""
+        """Cuts out all frames from the sprite sheet based on the XML data.
+
+        Args:
+            target_size (tuple[int, int]): The desired size for each frame (width, height).
+            root (ET.Element): The root element of the parsed XML containing frame data.
+        """
         for sub in root.findall("SubTexture"):
             name = sub.get("name")
             x = int(sub.get("x"))
@@ -114,7 +125,11 @@ class Player:
             self.current_frame_index = 0
 
     def draw(self, screen: pygame.Surface) -> None:
-        """Draws the player on the screen based on the current animation frame and direction."""
+        """Draws the player on the screen based on the current animation frame and direction.
+
+        Args:
+            screen (pygame.Surface): The surface to draw the player on.
+        """
         if self.is_moving:
             frame_name = self.walk_frames[self.current_frame_index]
         else:
