@@ -1,14 +1,21 @@
 import random
 
 import pygame
+from assets.character_helper import Player
 from grcp_server import heist_pb2
+from levels.level_manager import LevelManager
 from logger_config import get_logger
 
 logger = get_logger(__name__)
 
 
-def handle_menu_events(event, ui_elements, screen):
+def handle_menu_events(event: pygame.event.Event, ui_elements: dict, screen: pygame.Surface) -> str:
     """Handles input events for the MENU state.
+
+    Args:
+        event (pygame.event.Event): The Pygame event to handle.
+        ui_elements (dict): The dictionary of UI elements (buttons) to check for interactions.
+        screen (pygame.Surface): The Pygame surface to draw on (used for button rendering
 
     Returns:
         str: The new game state ("MENU", "LOBBY", or "JOIN_INPUT").
@@ -22,8 +29,13 @@ def handle_menu_events(event, ui_elements, screen):
     return "MENU"
 
 
-def handle_host_events(event, grpc_client, player_id):
+def handle_host_events(event: pygame.event.Event, grpc_client, player_id: str) -> tuple[str, str]:
     """Handles the host lobby creation via gRPC.
+
+    Args:
+        event (pygame.event.Event): The Pygame event to handle.
+        grpc_client: The gRPC client stub for making RPC calls.
+        player_id (str): The unique identifier for the player hosting the game.
 
     Returns:
         tuple: (new_game_state, lobby_code)
@@ -35,8 +47,16 @@ def handle_host_events(event, grpc_client, player_id):
     return "MENU", ""
 
 
-def handle_join_input_events(event, typed_code, grpc_client, player_id):
+def handle_join_input_events(
+    event: pygame.event.Event, typed_code: str, grpc_client, player_id: str
+) -> tuple[str, str, str]:
     """Handles input events for the JOIN_INPUT state (typing lobby code).
+
+    Args:
+        event (pygame.event.Event): The Pygame event to handle.
+        typed_code (str): The current lobby code being typed by the player.
+        grpc_client: The gRPC client stub for making RPC calls.
+        player_id (str): The unique identifier for the player trying to join.
 
     Returns:
         tuple: (new_game_state, lobby_code, typed_code)
@@ -59,8 +79,11 @@ def handle_join_input_events(event, typed_code, grpc_client, player_id):
     return "JOIN_INPUT", "", typed_code
 
 
-def handle_lobby_events(event):
+def handle_lobby_events(event: pygame.event.Event) -> str:
     """Handles input events for the LOBBY state.
+
+    Args:
+        event (pygame.event.Event): The Pygame event to handle.
 
     Returns:
         str: The new game state ("LOBBY" or "MENU").
@@ -70,8 +93,19 @@ def handle_lobby_events(event):
     return "LOBBY"
 
 
-def handle_infiltrator_events(event, player, level_manager, grpc_client, player_id, lobby_code):
-    """Handles input events for the INFILTRATOR state."""
+def handle_infiltrator_events(
+    event: pygame.event.Event, player: Player, level_manager: LevelManager, grpc_client, player_id: str, lobby_code: str
+) -> None:
+    """Handles input events for the INFILTRATOR state.
+
+    Args:
+        event (pygame.event.Event): The Pygame event to handle.
+        player (Player): The player object representing the infiltrator.
+        level_manager (LevelManager): The manager for the current level, used for collision and interaction checks.
+        grpc_client: The gRPC client stub for making RPC calls.
+        player_id (str): The unique identifier for the infiltrator player.
+        lobby_code (str): The code of the lobby the player is in.
+    """
     if event.type == pygame.KEYDOWN and event.key == pygame.K_e:
         terminal_pos = level_manager.get_terminal_near_player(player.rect)
         if terminal_pos:
@@ -83,9 +117,28 @@ def handle_infiltrator_events(event, player, level_manager, grpc_client, player_
 
 
 def handle_hacker_events(
-    event, cursor_x, target_x, hack_progress, cursor_dir, grpc_client, player_id, lobby_code, target_door_id
-):
+    event: pygame.event.Event,
+    cursor_x: int,
+    target_x: int,
+    hack_progress: int,
+    cursor_dir: int,
+    grpc_client,
+    player_id: str,
+    lobby_code: str,
+    target_door_id: str,
+) -> tuple[int, int, int, bool]:
     """Handles input events for the HACKER state.
+
+    Args:
+        event (pygame.event.Event): The Pygame event to handle.
+        cursor_x (int): The current x-position of the hacking cursor.
+        target_x (int): The x-position of the current hack node target.
+        hack_progress (int): The current progress of the hack (number of nodes secured).
+        cursor_dir (int): The current direction/speed of the cursor movement.
+        grpc_client: The gRPC client stub for making RPC calls.
+        player_id (str): The unique identifier for the hacker player.
+        lobby_code (str): The code of the lobby the player is in.
+        target_door_id (str): The ID of the door being targeted for unlocking.
 
     Returns:
         tuple: (hack_progress, target_x, cursor_dir, has_hacked)
