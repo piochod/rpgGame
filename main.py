@@ -1,13 +1,22 @@
+import random
 import sys
 
-import grpc
 import pygame
-from assets.character_helper import CharacterManager, Player
-from assets.tile_helper import TileManager
-from grcp_server import heist_pb2, heist_pb2_grpc
+from assets.character_helper import Player
+from assets.rabbitmq_helper import GameEventSubscriber
+from event_handler import (
+    handle_hacker_events,
+    handle_host_events,
+    handle_infiltrator_events,
+    handle_join_input_events,
+    handle_lobby_events,
+    handle_menu_events,
+)
+from game_init import init_display, init_grpc_client, load_assets
 from level_manager import LevelManager
 from logger_config import get_logger
-from utils import get_game_config
+from renderer import render_hacker, render_infiltrator, render_join_input, render_lobby, render_menu
+from utils import get_game_config, get_levels
 
 logger = get_logger(__name__)
 
@@ -17,201 +26,178 @@ SCREEN_HEIGHT = config["SCREEN_HEIGHT"]
 TILE_SIZE = config["TILE_SIZE"]
 
 
-LEVEL_MAP = [
-    "WWWWWWWWWWWWWWWWWWWWWWWWW",
-    "W.......................W",
-    "W..........WWWWW........W",
-    "W..........W...W........W",
-    "W..........W.V.D........W",
-    "W..........W...W........W",
-    "W..........WWWWW........W",
-    "W.......................W",
-    "W.......................W",
-    "W.......................W",
-    "W.......................W",
-    "W...................T...W",
-    "W.......................W",
-    "W...................WWWWW",
-    "W.......................W",
-    "W.......................W",
-    "W.......................W",
-    "W.......................W",
-    "WWWWWWWWWWWWWWWWWWWWWWWWW",
-]
-
-
-def init_display() -> tuple[pygame.Surface, pygame.time.Clock]:
-    """Initializes the Pygame display and returns the screen surface and clock.
-
-    Returns:
-        tuple[pygame.Surface, pygame.time.Clock]: The screen surface and clock.
-    """
-    pygame.init()
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    pygame.display.set_caption("Cyberpunk Heist: Graphics Test")
-    clock = pygame.time.Clock()
-    return screen, clock
-
-
-def init_grpc_client() -> heist_pb2_grpc.HeistGameStub:
-    """Initializes the gRPC client and returns the stub.
-
-    Returns:
-        heist_pb2_grpc.HeistGameStub: The gRPC client stub.
-    """
-    logger.info("Initializing gRPC client...")
-    try:
-        channel = grpc.insecure_channel("localhost:50051")
-        grpc_client = heist_pb2_grpc.HeistGameStub(channel)
-        logger.info("Successfully connected to gRPC server at localhost:50051")
-        return grpc_client
-    except Exception as e:
-        logger.critical(f"Failed to connect to gRPC server. {e}")
-        sys.exit(1)
-
-
-def load_assets() -> tuple[TileManager, CharacterManager]:
-    """Load game assets and return the managers.
-
-    Returns:
-       tuple[TileManager, CharacterManager]: The tile and character managers with loaded assets.
-    """
-    logger.info("Loading assets...")
-    try:
-        tile_manager = TileManager("assets/tilesetv1.0.png", "assets/tilesetv1.0_config.json")
-        char_manager = CharacterManager(
-            "assets/character_maleAdventurer_sheet.png", "assets/character_maleAdventurer_sheet.xml"
-        )
-        logger.info("Assets loaded successfully.")
-        return tile_manager, char_manager
-    except Exception as e:
-        logger.critical(f"Failed to load graphics. {e}")
-        sys.exit(1)
-
-
-def build_level(level_map) -> tuple[list[pygame.Rect], list[pygame.Rect]]:
-    """Parses the level map and returns lists of solid blocks and terminal positions.
-
-    Args:
-        level_map (list[str]): The level map represented as a list of strings.
-
-    Returns:
-        tuple[list[pygame.Rect], list[pygame.Rect]]: A tuple containing a list of solid blocks and terminal positions.
-    """
-    solid_blocks = []
-    terminals = []
-    for row_index, row_string in enumerate(level_map):
-        for col_index, tile_char in enumerate(row_string):
-            if tile_char in ("W", "D", "T", "G"):
-                x = col_index * TILE_SIZE
-                y = row_index * TILE_SIZE
-                solid_blocks.append(pygame.Rect(x, y, TILE_SIZE, TILE_SIZE))
-                if tile_char == "T":
-                    terminals.append(pygame.Rect(x, y, TILE_SIZE, TILE_SIZE))
-    return solid_blocks, terminals
-
-
-def handle_events(player: Player, level_manager: LevelManager, grpc_client: heist_pb2_grpc.HeistGameStub) -> bool:
-    """Process pygame events. Returns False when the game should quit.
-
-    Args:
-        player (Player): The player object to check interactions with.
-        level_manager (LevelManager): The level manager to check for interactions with terminals and vents.
-        grpc_client (heist_pb2_grpc.HeistGameStub): The gRPC client to send requests when interacting with terminals.
-
-    Returns:
-        bool: False if the game should quit, True otherwise.
-    """
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            return False
-
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_e:
-            reach_box = player.rect.inflate(16, 16)
-
-            terminal_index = reach_box.collidelist(level_manager.terminal_hitboxes)
-            if terminal_index != -1:
-                try:
-                    net_req = heist_pb2.AccessRequest(access_point_id="lobby", hacker_id="ghost_1")
-                    response = grpc_client.grantNetworkAccess(net_req)
-
-                    if response.success:
-                        level_manager.change_door_state("door_0", "G")
-                        logger.info("Door 0 turned Green! Ready for Hacker.")
-
-                except Exception as e:
-                    logger.error(f"gRPC Call Failed. Error: {e}")
-
-            vent_index = reach_box.collidelist(level_manager.vent_hitboxes)
-            if vent_index != -1:
-                logger.info("Player entered the vent! Loading Level 2...")
-                # TODO: Trigger next level load here
-
-    return True
-
-
-def render(screen, level_manager: LevelManager, tiles: dict, player: Player) -> None:
-    """Renders the game screen based on the level map and player position.
-
-    Args:
-        screen (pygame.Surface): The surface to render on.
-        level_manager (LevelManager): The level manager containing the game map and tile information.
-        tiles (dict): A dictionary of tile images keyed by their type.
-        player (Player): The player object to render.
-    """
-    screen.fill((0, 0, 0))
-
-    for row_index, row_list in enumerate(level_manager.game_map):
-        for col_index, tile_char in enumerate(row_list):
-            x = col_index * level_manager.tile_size
-            y = row_index * level_manager.tile_size
-
-            screen.blit(tiles["floor"], (x, y))
-
-            if tile_char == "W":
-                screen.blit(tiles["wall"], (x, y))
-            elif tile_char == "T":
-                screen.blit(tiles["terminal"], (x, y))
-            elif tile_char == "V":
-                screen.blit(tiles["vent"], (x, y))
-            elif tile_char == "D":
-                screen.blit(tiles["door_red"], (x, y))
-            elif tile_char == "G":
-                screen.blit(tiles["door_green"], (x, y))
-            elif tile_char == "O":
-                screen.blit(tiles["door_open"], (x, y))
-
-    player.draw(screen)
-    pygame.display.flip()
-
-
 def main() -> None:
-    """Main game loop."""
     screen, clock = init_display()
     grpc_client = init_grpc_client()
+    tile_manager, char_manager, ui_elements = load_assets()
 
-    tile_manager, char_manager = load_assets()
+    # Start the RabbitMQ Listener in the background
+    rabbit_subscriber = GameEventSubscriber(host="localhost", exchange_name="game_events")
+
+    fonts = {
+        "normal": pygame.font.Font("assets/fonts/Kenney_Future.ttf", 24),
+        "narrow": pygame.font.Font("assets/fonts/Kenney_Future_Narrow.ttf", 24),
+        "title": pygame.font.Font("assets/fonts/Kenney_Future.ttf", 36),
+    }
+
     tiles = {
         "floor": tile_manager.get("floor_plain"),
         "door_red": tile_manager.get("door_red"),
         "door_green": tile_manager.get("door_green"),
-        "door_open": tile_manager.get("door_open"),
+        "door_opened": tile_manager.get("door_opened"),
         "wall": tile_manager.get("wall"),
         "terminal": tile_manager.get("terminal"),
         "vent": tile_manager.get("vent"),
     }
 
+    # Load levels from JSON
+    levels = get_levels()
+    current_level_index = 0
+    level_data = levels[current_level_index]
+    level_map = level_data["map"]
+
     center_x = (SCREEN_WIDTH // 2) - (TILE_SIZE // 2)
     center_y = (SCREEN_HEIGHT // 2) - (TILE_SIZE // 2)
     player = Player(char_manager, center_x, center_y)
-    level_manager = LevelManager(LEVEL_MAP, TILE_SIZE)
+    level_manager = LevelManager(level_map, TILE_SIZE, level_data.get("terminal_door_links", []))
+
+    # --- SESSION STATE VARIABLES ---
+    game_state = "MENU"
+    player_id = f"Ghost_{random.randint(100,999)}"
+    lobby_code = ""
+    typed_code = ""
+    is_usb_ready = False
+
+    hack_progress = 0
+    cursor_x = 100
+    cursor_dir = 4
+    target_x = random.randint(120, 250)
+    has_hacked = False
+    target_door_id = "door_0"  # Which door the hacker is currently unlocking
 
     running = True
     while running:
-        running = handle_events(player, level_manager, grpc_client)
-        keys = pygame.key.get_pressed()
-        player.update(keys, level_manager.solid_blocks)
-        render(screen, level_manager, tiles, player)
+
+        for msg in rabbit_subscriber.get_messages():
+            if msg.get("lobby_code") == lobby_code:
+
+                if msg.get("event") == "START_GAME" and game_state == "LOBBY":
+                    logger.info("Hacker joined! Game starting...")
+                    game_state = "INFILTRATOR"
+
+                elif msg.get("event") == "USB_PLUGGED":
+                    logger.info("Infiltrator plugged in the USB!")
+                    is_usb_ready = True
+                    target_door_id = msg.get("door_id", "door_0")
+                    if game_state == "INFILTRATOR":
+                        level_manager.change_door_state(target_door_id, "G")
+
+                elif msg.get("event") == "DOOR_HACKED":
+                    door_id = msg.get("door_id", "door_0")
+                    logger.info(f"Hacker opened {door_id}!")
+                    if game_state == "INFILTRATOR":
+                        level_manager.change_door_state(door_id, "O")
+                    # Reset hacker state so next terminal can trigger a new hack
+                    is_usb_ready = False
+                    hack_progress = 0
+                    cursor_x = 100
+                    cursor_dir = 4
+                    target_x = random.randint(120, 250)
+                    has_hacked = False
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+            if game_state == "MENU":
+                new_state = handle_menu_events(event, ui_elements, screen)
+                if new_state == "HOST":
+                    new_state, new_lobby = handle_host_events(event, grpc_client, player_id)
+                    if new_state == "LOBBY":
+                        game_state = "LOBBY"
+                        lobby_code = new_lobby
+                elif new_state == "JOIN_INPUT":
+                    game_state = "JOIN_INPUT"
+                    typed_code = ""
+
+            elif game_state == "JOIN_INPUT":
+                new_state, new_lobby, typed_code = handle_join_input_events(event, typed_code, grpc_client, player_id)
+                if new_state == "HACKER":
+                    game_state = "HACKER"
+                    lobby_code = new_lobby
+                elif new_state == "MENU":
+                    game_state = "MENU"
+
+            elif game_state == "LOBBY":
+                new_state = handle_lobby_events(event)
+                if new_state == "MENU":
+                    game_state = "MENU"
+                    lobby_code = ""
+
+            elif game_state == "INFILTRATOR":
+                handle_infiltrator_events(event, player, level_manager, grpc_client, player_id, lobby_code)
+
+            elif game_state == "HACKER" and is_usb_ready and not has_hacked:
+                hack_progress, target_x, cursor_dir, just_hacked = handle_hacker_events(
+                    event,
+                    cursor_x,
+                    target_x,
+                    hack_progress,
+                    cursor_dir,
+                    grpc_client,
+                    player_id,
+                    lobby_code,
+                    target_door_id,
+                )
+                if just_hacked:
+                    has_hacked = True
+
+        if game_state == "MENU":
+            render_menu(screen, ui_elements, typed_code, fonts, SCREEN_WIDTH)
+
+        elif game_state == "JOIN_INPUT":
+            render_join_input(screen, typed_code, fonts, SCREEN_WIDTH)
+
+        elif game_state == "LOBBY":
+            render_lobby(screen, lobby_code, fonts, SCREEN_WIDTH)
+
+        elif game_state == "HACKER":
+            if is_usb_ready and not has_hacked:
+                cursor_x += cursor_dir
+                if cursor_x > 290 or cursor_x < 100:
+                    cursor_dir *= -1
+            render_hacker(screen, fonts, is_usb_ready, hack_progress, cursor_x, target_x, SCREEN_WIDTH)
+
+        elif game_state == "INFILTRATOR":
+            keys = pygame.key.get_pressed()
+            player.update(keys, level_manager.solid_blocks)
+
+            # Check if player entered a vent -> advance to next level
+            if level_manager.check_vent_collision(player.rect):
+                current_level_index += 1
+                if current_level_index < len(levels):
+                    logger.info(
+                        f"Entering vent! Loading level: {levels[current_level_index]['name']} " f"(lobby: {lobby_code})"
+                    )
+                    level_data = levels[current_level_index]
+                    level_map = level_data["map"]
+                    level_manager = LevelManager(level_map, TILE_SIZE, level_data.get("terminal_door_links", []))
+                    player.rect.x = center_x
+                    player.rect.y = center_y
+                    # Reset hacker state for new level
+                    is_usb_ready = False
+                    hack_progress = 0
+                    cursor_x = 100
+                    cursor_dir = 4
+                    target_x = random.randint(120, 250)
+                    has_hacked = False
+                else:
+                    logger.info("All levels complete!")
+                    current_level_index -= 1  # Stay on last level
+
+            render_infiltrator(screen, level_manager, tiles, player)
+
+        pygame.display.flip()
         clock.tick(60)
 
     pygame.quit()

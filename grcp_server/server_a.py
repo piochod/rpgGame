@@ -1,5 +1,7 @@
 """Server A: The Physical World Server that handles interactions with the physical environment."""
 
+import random
+import string
 import time
 from concurrent import futures
 
@@ -17,80 +19,151 @@ class HeistGameServicer(heist_pb2_grpc.HeistGameServicer):
 
     def __init__(self) -> None:
         """Initializes the HeistGameServicer."""
-        self._door_zones = {
-            "door_01": "lobby",
-            "door_02": "lobby",
-            "door_server_room": "basement",
-            "door_vault": "vault_level",
+        # Format: {"A7X9": {"infiltrator": "p1", "hacker": "p2", "usb_ready_doors": set(), "opened_doors": set()}}
+        self.lobbies: dict[str, dict] = {}
+
+    def createLobby(
+        self, request: heist_pb2.CreateLobbyRequest, context: grpc.ServicerContext
+    ) -> heist_pb2.LobbyResponse:
+        """Host creates a new game session.
+
+        Args:
+            request (heist_pb2.CreateLobbyRequest): The gRPC request containing the host's player ID.
+            context (grpc.ServicerContext): The gRPC context for the request.
+
+        Returns:
+            heist_pb2.LobbyResponse: The response containing the lobby code and assigned role.
+        """
+        code = "".join(random.choices(string.ascii_uppercase + string.digits, k=4))
+
+        self.lobbies[code] = {
+            "infiltrator": request.player_id,
+            "hacker": None,
+            "usb_ready_doors": set(),
+            "opened_doors": set(),
+            "disabled_cameras": set(),
         }
-        self._zone_usb_status = {"lobby": False, "basement": False, "vault_level": False}
-        self._disabled_cameras: set[str] = set()
-        self._opened_doors: set[str] = set()
 
-    def unlockDoor(self, request: heist_pb2.TargetRequest, context: grpc.ServicerContext) -> heist_pb2.ActionResponse:
-        """Handles door unlock requests from hackers."""
-        logger.info(f"[SERVER A] Received hack attempt from {request.hacker_id} for {request.target_id}...")
+        logger.info(f"[SERVER A] Lobby {code} created by Infiltrator: {request.player_id}")
+        return heist_pb2.LobbyResponse(
+            success=True, message="Lobby created.", lobby_code=code, assigned_role="Infiltrator"
+        )
 
-        if request.target_id not in self._door_zones:
-            logger.warning(f"[SERVER A] Door {request.target_id} does not exist.")
-            return heist_pb2.ActionResponse(success=False, message="Invalid door ID.")
+    def joinLobby(self, request: heist_pb2.JoinLobbyRequest, context: grpc.ServicerContext) -> heist_pb2.LobbyResponse:
+        """Guest joins an existing game session.
 
-        target_zone = self._door_zones[request.target_id]
+        Args:
+            request (heist_pb2.JoinLobbyRequest): The gRPC request containing the lobby code and the guest's player ID.
+            context (grpc.ServicerContext): The gRPC context for the request.
 
-        if not self._zone_usb_status[target_zone]:
-            logger.info(f"[SERVER A] USB not plugged in for {target_zone}. Access denied to {request.target_id}.")
+        Returns:
+            heist_pb2.LobbyResponse: The response containing the lobby code and assigned role.
+        """
+        code = request.lobby_code.upper()
 
-            publish_event(
-                "game.alarm",
-                {
-                    "level": "HIGH",
-                    "location": target_zone,
-                    "message": f"Unauthorized hack attempt detected on {request.target_id}!",
-                },
+        if code not in self.lobbies:
+            logger.warning(f"[SERVER A] Failed join attempt. Lobby {code} does not exist.")
+            return heist_pb2.LobbyResponse(
+                success=False, message="Invalid lobby code.", lobby_code="", assigned_role=""
             )
 
-            return heist_pb2.ActionResponse(success=False, message=f"USB override required for {target_zone}.")
+        if self.lobbies[code]["hacker"] is not None:
+            logger.warning(f"[SERVER A] Failed join attempt. Lobby {code} is full.")
+            return heist_pb2.LobbyResponse(success=False, message="Lobby is full.", lobby_code="", assigned_role="")
 
-        logger.info(f"[SERVER A] USB is plugged in for {target_zone}. Unlocking {request.target_id}...")
-        self._opened_doors.add(request.target_id)
+        self.lobbies[code]["hacker"] = request.player_id
+        logger.info(f"[SERVER A] {request.player_id} joined Lobby {code} as Hacker!")
+
+        publish_event("game_events", {"event": "START_GAME", "lobby_code": code})
+
+        return heist_pb2.LobbyResponse(
+            success=True, message="Successfully joined.", lobby_code=code, assigned_role="Hacker"
+        )
+
+    def grantNetworkAccess(
+        self, request: heist_pb2.AccessRequest, context: grpc.ServicerContext
+    ) -> heist_pb2.ActionResponse:
+        """Handles the Infiltrator plugging USB at a terminal to enable hacking a specific door.
+
+        Args:
+            request (heist_pb2.AccessRequest): The gRPC request with the access point ID (door_id), hacker ID, and lobby code.
+            context (grpc.ServicerContext): The gRPC context for the request.
+
+        Returns:
+            heist_pb2.ActionResponse: The response indicating the success or failure of the network access request.
+        """
+        code = request.lobby_code
+        if code not in self.lobbies:
+            return heist_pb2.ActionResponse(success=False, message="Lobby not found.")
+
+        door_id = request.access_point_id
+        logger.info(f"[SERVER A | {code}] Infiltrator plugged USB -> enabling hack for {door_id}!")
+        self.lobbies[code]["usb_ready_doors"].add(door_id)
+
+        publish_event("game_events", {"event": "USB_PLUGGED", "lobby_code": code, "door_id": door_id})
+
+        return heist_pb2.ActionResponse(success=True, message=f"Network access granted for {door_id}.")
+
+    def unlockDoor(self, request: heist_pb2.TargetRequest, context: grpc.ServicerContext) -> heist_pb2.ActionResponse:
+        """Handles the Hacker's request to unlock a door.
+
+        Args:
+            request (heist_pb2.TargetRequest): The gRPC request containing the target door ID and lobby code.
+            context (grpc.ServicerContext): The gRPC context for the request.
+
+        Returns:
+            heist_pb2.ActionResponse: The response indicating the success or failure of the door unlock request.
+        """
+        code = request.lobby_code
+        if code not in self.lobbies:
+            return heist_pb2.ActionResponse(success=False, message="Lobby not found.")
+
+        door_id = request.target_id
+
+        if door_id not in self.lobbies[code]["usb_ready_doors"]:
+            logger.info(f"[SERVER A | {code}] Hacker tried to open {door_id} before USB was ready!")
+            publish_event(
+                "game_events",
+                {"event": "ALARM", "lobby_code": code, "message": f"Unauthorized hack attempt on {door_id}!"},
+            )
+            return heist_pb2.ActionResponse(success=False, message=f"USB override required for {door_id}.")
+
+        logger.info(f"[SERVER A | {code}] Hacker successfully opened {door_id}!")
+        self.lobbies[code]["opened_doors"].add(door_id)
+
+        publish_event("game_events", {"event": "DOOR_HACKED", "lobby_code": code, "door_id": door_id})
+
         return heist_pb2.ActionResponse(success=True, message="Door unlocked.")
 
     def disableCamera(
         self, request: heist_pb2.TargetRequest, context: grpc.ServicerContext
     ) -> heist_pb2.ActionResponse:
-        """Handles camera disable requests from hackers."""
-        logger.info(f"[SERVER A] Received camera disable request from {request.hacker_id} for {request.target_id}...")
-        self._disabled_cameras.add(request.target_id)
-        logger.info(f"[SERVER A] Camera {request.target_id} disabled.")
+        """Handles the Hacker's request to disable a camera.
+
+        Args:
+            request (heist_pb2.TargetRequest): The gRPC request containing the target camera ID and lobby code.
+            context (grpc.ServicerContext): The gRPC context for the request.
+
+        Returns:
+            heist_pb2.ActionResponse: The response indicating the success or failure of the camera disable request.
+        """
+        code = request.lobby_code
+        if code not in self.lobbies:
+            return heist_pb2.ActionResponse(success=False, message="Lobby not found.")
+
+        self.lobbies[code]["disabled_cameras"].add(request.target_id)
+        logger.info(f"[SERVER A | {code}] Camera {request.target_id} disabled.")
         return heist_pb2.ActionResponse(success=True, message="Camera disabled.")
 
-    def grantNetworkAccess(
-        self, request: heist_pb2.AccessRequest, context: grpc.ServicerContext
-    ) -> heist_pb2.ActionResponse:
-        """Handles network access grant requests from hackers."""
-        target_zone = request.access_point_id
-
-        if target_zone not in self._zone_usb_status:
-            return heist_pb2.ActionResponse(success=False, message="Invalid access point.")
-
-        logger.info(f"[SERVER A] Infiltrator plugged USB into {target_zone}!")
-
-        self._zone_usb_status[target_zone] = True
-        return heist_pb2.ActionResponse(success=True, message=f"Network access granted for {target_zone}.")
-
     def requestVote(self, request: heist_pb2.VoteRequest, context: grpc.ServicerContext) -> heist_pb2.VoteResponse:
-        """Handles Maekawa algorithm vote requests for mutual exclusion."""
-        # Placeholder for your Maekawa algorithm
-        logger.info(f"[SERVER A] Received vote request from {request.hacker_id}.")
+        logger.info(f"[SERVER A] Received vote request from {request.requesting_node_id}.")
         return heist_pb2.VoteResponse(vote_granted=True)
 
 
 def start_server() -> None:
     """Starts the gRPC server for Server A."""
     grpc_server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-
     heist_pb2_grpc.add_HeistGameServicer_to_server(HeistGameServicer(), grpc_server)
-
     grpc_server.add_insecure_port("[::]:50051")
     grpc_server.start()
     logger.info("[SERVER A] Physical World Server is running on port 50051...")

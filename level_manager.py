@@ -7,12 +7,13 @@ logger = get_logger(__name__)
 class LevelManager:
     """Manages the game map, including dynamic elements like doors and terminals."""
 
-    def __init__(self, raw_map: list[str], tile_size: int) -> None:
+    def __init__(self, raw_map: list[str], tile_size: int, terminal_door_links: list[dict] | None = None) -> None:
         """Initializes the level manager with a raw map and tile size.
 
         Args:
             raw_map (list[str]): The level map represented as a list of strings.
             tile_size (int): The size of each tile in pixels.
+            terminal_door_links (list): List of {"terminal": [row,col], "door": [row,col]} mappings.
         """
         self.tile_size = tile_size
 
@@ -20,10 +21,19 @@ class LevelManager:
 
         self.doors = {}
         self.terminals = {}
+        self.vents = {}
 
         self.solid_blocks = []
-        self.terminal_hitboxes = []
-        self.vent_hitboxes = []
+        self.terminal_rects = {}
+        self.vent_rects = {}
+
+        # Position-based lookup: (row, col) of terminal -> (row, col) of door it opens
+        self._terminal_to_door_pos = {}
+        if terminal_door_links:
+            for link in terminal_door_links:
+                t_pos = tuple(link["terminal"])
+                d_pos = tuple(link["door"])
+                self._terminal_to_door_pos[t_pos] = d_pos
 
         self._build_initial_level()
 
@@ -31,6 +41,7 @@ class LevelManager:
         """Scans the map ONCE at startup to populate our O(1) trackers."""
         door_counter = 0
         term_counter = 0
+        vent_counter = 0
 
         for row_index, row_list in enumerate(self.game_map):
             for col_index, tile_char in enumerate(row_list):
@@ -40,7 +51,7 @@ class LevelManager:
                 if tile_char == "T":
                     term_id = f"terminal_{term_counter}"
                     self.terminals[term_id] = (row_index, col_index)
-                    self.terminal_hitboxes.append(pygame.Rect(x, y, self.tile_size, self.tile_size))
+                    self.terminal_rects[(row_index, col_index)] = pygame.Rect(x, y, self.tile_size, self.tile_size)
                     term_counter += 1
 
                 if tile_char in ["D", "G"]:
@@ -49,7 +60,10 @@ class LevelManager:
                     door_counter += 1
 
                 if tile_char == "V":
-                    self.vent_hitboxes.append(pygame.Rect(x, y, self.tile_size, self.tile_size))
+                    vent_id = f"vent_{vent_counter}"
+                    self.vents[vent_id] = (row_index, col_index)
+                    self.vent_rects[(row_index, col_index)] = pygame.Rect(x, y, self.tile_size, self.tile_size)
+                    vent_counter += 1
 
         self.update_collision_blocks()
 
@@ -78,3 +92,43 @@ class LevelManager:
             self.update_collision_blocks()
         else:
             logger.error(f"Door {door_id} not found!")
+
+    def check_vent_collision(self, player_rect: pygame.Rect) -> bool:
+        """O(1) grid-based check if the player is overlapping any vent tile."""
+        row = player_rect.centery // self.tile_size
+        col = player_rect.centerx // self.tile_size
+        return (row, col) in self.vent_rects
+
+    def check_terminal_collision(self, player_rect: pygame.Rect) -> bool:
+        """O(1) grid-based check if the player is near any terminal tile."""
+        reach_box = player_rect.inflate(16, 16)
+        row = reach_box.centery // self.tile_size
+        col = reach_box.centerx // self.tile_size
+        for dr in (-1, 0, 1):
+            for dc in (-1, 0, 1):
+                if (row + dr, col + dc) in self.terminal_rects:
+                    return True
+        return False
+
+    def get_terminal_near_player(self, player_rect: pygame.Rect) -> tuple[int, int] | None:
+        """Returns the (row, col) of the terminal near the player, or None."""
+        reach_box = player_rect.inflate(16, 16)
+        row = reach_box.centery // self.tile_size
+        col = reach_box.centerx // self.tile_size
+        for dr in (-1, 0, 1):
+            for dc in (-1, 0, 1):
+                check = (row + dr, col + dc)
+                if check in self.terminal_rects:
+                    return check
+        return None
+
+    def get_door_for_terminal(self, terminal_pos: tuple[int, int]) -> str | None:
+        """Returns the door_id that the terminal at this position unlocks, or None."""
+        door_pos = self._terminal_to_door_pos.get(terminal_pos)
+        if door_pos is None:
+            return None
+        # Find the door_id at that position
+        for door_id, pos in self.doors.items():
+            if pos == door_pos:
+                return door_id
+        return None

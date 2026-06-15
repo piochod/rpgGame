@@ -1,11 +1,11 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # 1. The Message Broker
   rabbitmq:
     image: rabbitmq:3-management
     ports:
-      - "5672:5672"   # Standard AMQP port
+      - "5672:5672" # Standard AMQP port
       - "15672:15672" # Management UI (Dashboard)
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
@@ -22,13 +22,3 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy # Wait for RabbitMQ to wake up before starting
-
-  # 3. Server B (The Cyber World / Integration Test)
-  server_b:
-    build: .
-    command: python -m grcp_server.server_b
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      server_a:
-        condition: service_started
