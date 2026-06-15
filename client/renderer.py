@@ -1,6 +1,6 @@
 import pygame
 from assets.character_helper import Player
-from level_manager import LevelManager
+from levels.level_manager import LevelManager
 
 
 def _draw_button_with_text(screen: pygame.Surface, button, text: str, font: pygame.font.Font) -> None:

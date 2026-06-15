@@ -27,7 +27,6 @@ class LevelManager:
         self.terminal_rects = {}
         self.vent_rects = {}
 
-        # Position-based lookup: (row, col) of terminal -> (row, col) of door it opens
         self._terminal_to_door_pos = {}
         if terminal_door_links:
             for link in terminal_door_links:
@@ -35,6 +34,7 @@ class LevelManager:
                 d_pos = tuple(link["door"])
                 self._terminal_to_door_pos[t_pos] = d_pos
 
+        self._pos_to_door_id = {}
         self._build_initial_level()
 
     def _build_initial_level(self) -> None:
@@ -57,6 +57,7 @@ class LevelManager:
                 if tile_char in ["D", "G"]:
                     door_id = f"door_{door_counter}"
                     self.doors[door_id] = (row_index, col_index)
+                    self._pos_to_door_id[(row_index, col_index)] = door_id
                     door_counter += 1
 
                 if tile_char == "V":
@@ -123,12 +124,8 @@ class LevelManager:
         return None
 
     def get_door_for_terminal(self, terminal_pos: tuple[int, int]) -> str | None:
-        """Returns the door_id that the terminal at this position unlocks, or None."""
+        """O(1) lookup: returns the door_id that the terminal at this position unlocks."""
         door_pos = self._terminal_to_door_pos.get(terminal_pos)
         if door_pos is None:
             return None
-        # Find the door_id at that position
-        for door_id, pos in self.doors.items():
-            if pos == door_pos:
-                return door_id
-        return None
+        return self._pos_to_door_id.get(door_pos)

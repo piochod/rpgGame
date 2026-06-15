@@ -8,7 +8,7 @@ def get_game_config():
 
 def get_levels():
     """Loads all level definitions from levels.json."""
-    with open("levels.json", "r", encoding="utf-8") as file:
+    with open("levels/levels.json", "r", encoding="utf-8") as file:
         data = json.load(file)
     return data["levels"]
 

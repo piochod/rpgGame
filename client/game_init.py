@@ -5,9 +5,9 @@ import pygame
 from assets.character_helper import CharacterManager
 from assets.tile_helper import TileManager
 from assets.ui_helper import Button
+from client.utils import get_game_config
 from grcp_server import heist_pb2_grpc
 from logger_config import get_logger
-from utils import get_game_config
 
 logger = get_logger(__name__)
 config = get_game_config()
@@ -41,12 +41,12 @@ def load_assets() -> tuple[TileManager, CharacterManager, dict]:
     """Loads game assets and returns the managers and UI elements."""
     logger.info("Loading assets...")
     try:
-        tile_manager = TileManager("assets/tilesetv1.0.png", "assets/tilesetv1.0_config.json")
+        tile_manager = TileManager("resources/tilesetv1.0.png", "resources/tilesetv1.0_config.json")
         char_manager = CharacterManager(
-            "assets/character_maleAdventurer_sheet.png", "assets/character_maleAdventurer_sheet.xml"
+            "resources/character_maleAdventurer_sheet.png", "resources/character_maleAdventurer_sheet.xml"
         )
 
-        btn_path = "assets/ui_textures/button_square_header_large_rectangle.png"
+        btn_path = "resources/ui_textures/button_square_header_large_rectangle.png"
         ui_elements = {
             "host_btn": Button(SCREEN_WIDTH // 2 - 95, 250, btn_path),
             "join_btn": Button(SCREEN_WIDTH // 2 - 95, 350, btn_path),

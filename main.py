@@ -3,8 +3,7 @@ import sys
 
 import pygame
 from assets.character_helper import Player
-from assets.rabbitmq_helper import GameEventSubscriber
-from event_handler import (
+from client.event_handler import (
     handle_hacker_events,
     handle_host_events,
     handle_infiltrator_events,
@@ -12,11 +11,12 @@ from event_handler import (
     handle_lobby_events,
     handle_menu_events,
 )
-from game_init import init_display, init_grpc_client, load_assets
-from level_manager import LevelManager
+from client.game_init import init_display, init_grpc_client, load_assets
+from client.renderer import render_hacker, render_infiltrator, render_join_input, render_lobby, render_menu
+from client.utils import get_game_config, get_levels
+from levels.level_manager import LevelManager
 from logger_config import get_logger
-from renderer import render_hacker, render_infiltrator, render_join_input, render_lobby, render_menu
-from utils import get_game_config, get_levels
+from rabbitmq.rabbitmq_helper import GameEventSubscriber
 
 logger = get_logger(__name__)
 
@@ -31,13 +31,12 @@ def main() -> None:
     grpc_client = init_grpc_client()
     tile_manager, char_manager, ui_elements = load_assets()
 
-    # Start the RabbitMQ Listener in the background
     rabbit_subscriber = GameEventSubscriber(host="localhost", exchange_name="game_events")
 
     fonts = {
-        "normal": pygame.font.Font("assets/fonts/Kenney_Future.ttf", 24),
-        "narrow": pygame.font.Font("assets/fonts/Kenney_Future_Narrow.ttf", 24),
-        "title": pygame.font.Font("assets/fonts/Kenney_Future.ttf", 36),
+        "normal": pygame.font.Font("resources/fonts/Kenney_Future.ttf", 24),
+        "narrow": pygame.font.Font("resources/fonts/Kenney_Future_Narrow.ttf", 24),
+        "title": pygame.font.Font("resources/fonts/Kenney_Future.ttf", 36),
     }
 
     tiles = {
@@ -50,7 +49,6 @@ def main() -> None:
         "vent": tile_manager.get("vent"),
     }
 
-    # Load levels from JSON
     levels = get_levels()
     current_level_index = 0
     level_data = levels[current_level_index]
@@ -61,7 +59,6 @@ def main() -> None:
     player = Player(char_manager, center_x, center_y)
     level_manager = LevelManager(level_map, TILE_SIZE, level_data.get("terminal_door_links", []))
 
-    # --- SESSION STATE VARIABLES ---
     game_state = "MENU"
     player_id = f"Ghost_{random.randint(100,999)}"
     lobby_code = ""
@@ -73,7 +70,7 @@ def main() -> None:
     cursor_dir = 4
     target_x = random.randint(120, 250)
     has_hacked = False
-    target_door_id = "door_0"  # Which door the hacker is currently unlocking
+    target_door_id = "door_0"
 
     running = True
     while running:
@@ -97,7 +94,6 @@ def main() -> None:
                     logger.info(f"Hacker opened {door_id}!")
                     if game_state == "INFILTRATOR":
                         level_manager.change_door_state(door_id, "O")
-                    # Reset hacker state so next terminal can trigger a new hack
                     is_usb_ready = False
                     hack_progress = 0
                     cursor_x = 100
@@ -172,7 +168,6 @@ def main() -> None:
             keys = pygame.key.get_pressed()
             player.update(keys, level_manager.solid_blocks)
 
-            # Check if player entered a vent -> advance to next level
             if level_manager.check_vent_collision(player.rect):
                 current_level_index += 1
                 if current_level_index < len(levels):
@@ -184,7 +179,6 @@ def main() -> None:
                     level_manager = LevelManager(level_map, TILE_SIZE, level_data.get("terminal_door_links", []))
                     player.rect.x = center_x
                     player.rect.y = center_y
-                    # Reset hacker state for new level
                     is_usb_ready = False
                     hack_progress = 0
                     cursor_x = 100
@@ -193,7 +187,7 @@ def main() -> None:
                     has_hacked = False
                 else:
                     logger.info("All levels complete!")
-                    current_level_index -= 1  # Stay on last level
+                    current_level_index -= 1
 
             render_infiltrator(screen, level_manager, tiles, player)
 

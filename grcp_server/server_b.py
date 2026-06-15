@@ -6,7 +6,7 @@ import grcp_server.heist_pb2 as heist_pb2
 import grcp_server.heist_pb2_grpc as heist_pb2_grpc
 import grpc
 from logger_config import get_logger
-from rabbit_server import start_background_listener
+from rabbitmq.rabbit_server import start_background_listener
 
 logger = get_logger(__name__)
 

@@ -9,7 +9,7 @@ import grcp_server.heist_pb2 as heist_pb2
 import grcp_server.heist_pb2_grpc as heist_pb2_grpc
 import grpc
 from logger_config import get_logger
-from rabbit_server import publish_event
+from rabbitmq.rabbit_server import publish_event
 
 logger = get_logger(__name__)
 
@@ -86,7 +86,7 @@ class HeistGameServicer(heist_pb2_grpc.HeistGameServicer):
         """Handles the Infiltrator plugging USB at a terminal to enable hacking a specific door.
 
         Args:
-            request (heist_pb2.AccessRequest): The gRPC request with the access point ID (door_id), hacker ID, and lobby code.
+            request (heist_pb2.AccessRequest): The gRPC request with the access point ID, hacker ID, and lobby code.
             context (grpc.ServicerContext): The gRPC context for the request.
 
         Returns:
