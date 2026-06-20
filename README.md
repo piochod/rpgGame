@@ -7,20 +7,29 @@ A 2-player cooperative heist game built for a distributed systems class. One pla
 ## Architecture
 
 ```
-┌────────────────┐         gRPC          ┌──────────────────┐
-│  Player 1      │◄──────────────────────►│   Server A       │
-│  (Infiltrator) │                        │   (gRPC + Logic) │
-│  Pygame Client │◄──── RabbitMQ ────────►│                  │
-└────────────────┘      (fanout)          └──────────────────┘
-                                                   ▲
-┌────────────────┐         gRPC                    │
-│  Player 2      │◄───────────────────────────────►│
+┌────────────────┐                        ┌───────────────────┐
+│  Player 1      │◄─── gRPC :50051 ──────►│  Lobby Service    │
+│  (Infiltrator) │                        │  (Sessions)       │
+│  Pygame Client │◄─── gRPC :50052 ──────►├───────────────────┤
+└────────────────┘                        │  Action Service   │
+        ▲                                 │  (Game Logic)     │
+        │         RabbitMQ (fanout)        └─────────┬─────────┘
+        └─────────────────────────────────────────────┘
+┌────────────────┐                                 ▲
+│  Player 2      │◄─── gRPC :50051/:50052 ────────►│
 │  (Hacker)      │                                 │
 │  Pygame Client │◄──── RabbitMQ ──────────────────┘
 └────────────────┘
 ```
 
-- **gRPC** – Client-server RPCs for lobby creation, joining, terminal activation, and door unlocking.
+The backend is split into independently deployable **microservices**, each with its own `.proto` definition:
+
+| Service            | Port  | Responsibility                                                                        |
+| ------------------ | ----- | ------------------------------------------------------------------------------------- |
+| **Lobby Service**  | 50051 | `CreateLobby`, `JoinLobby` — matchmaking & session management                         |
+| **Action Service** | 50052 | `UnlockDoor`, `DisableCamera`, `DisableLaser`, `GrantNetworkAccess` — in-game actions |
+
+- **gRPC** – Each microservice exposes a focused set of RPCs via its own protobuf service definition.
 - **RabbitMQ** – Fanout exchange broadcasts real-time events (`START_GAME`, `USB_PLUGGED`, `DOOR_HACKED`) to all connected clients.
 - **Pygame** – Each player runs their own game window locally.
 
@@ -58,13 +67,16 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. Start the backend (RabbitMQ + gRPC Server)
+### 2. Start the backend (RabbitMQ + gRPC microservices)
 
 ```bash
 sudo docker compose up --build
 ```
 
-Wait until you see the RabbitMQ health check pass and `Server A listening on port 50051`.
+Wait until you see the RabbitMQ health check pass, then:
+
+- `Lobby Service is running on port 50051`
+- `Action Service is running on port 50052`
 
 ### 3. Run Player 1 – Infiltrator
 
@@ -96,9 +108,10 @@ By default the client connects to `localhost`. To play across two machines:
 
 1. Run Docker on the **host machine** (the one running `docker compose up`).
 2. On the **remote machine**, edit `client/game_init.py` and `rabbitmq/rabbitmq_helper.py` to replace `localhost` with the host machine's LAN IP (e.g. `192.168.1.100`):
-   - `grpc.insecure_channel("192.168.1.100:50051")`
+   - `grpc.insecure_channel("192.168.1.100:50051")` (Lobby)
+   - `grpc.insecure_channel("192.168.1.100:50052")` (Action)
    - `GameEventSubscriber(host="192.168.1.100")`
-3. Ensure ports `5672` and `50051` are open on the host's firewall.
+3. Ensure ports `5672`, `50051`, and `50052` are open on the host's firewall.
 
 ---
 
@@ -134,7 +147,7 @@ By default the client connects to `localhost`. To play across two machines:
 ├── logger_config.py             # Logging setup (cross-cutting)
 ├── requirements.txt             # grpcio, pika, pygame
 ├── Dockerfile                   # Python 3.11 slim for server container
-├── docker-compose.yml           # RabbitMQ + Server A containers
+├── docker-compose.yml           # RabbitMQ + gRPC microservice containers
 │
 ├── client/                      # Client-side game logic
 │   ├── event_handler.py         # Input handling per game state
@@ -163,11 +176,15 @@ By default the client connects to `localhost`. To play across two machines:
 │   ├── rabbit_server.py         # Publisher (server-side, runs in Docker)
 │   └── rabbitmq_helper.py       # Subscriber (client-side, background thread with retry)
 │
-└── grcp_server/                 # gRPC backend (runs in Docker)
-    ├── server_a.py              # Game logic server (lobby, doors, terminals)
-    ├── heist.proto              # Protobuf service definition
-    ├── heist_pb2.py             # Generated protobuf code
-    └── heist_pb2_grpc.py        # Generated gRPC stubs
+└── grcp_server/                 # gRPC microservices (run in Docker)
+    ├── lobby.proto              # Protobuf definition: Lobby Service
+    ├── lobby_server.py          # Lobby Service implementation (sessions)
+    ├── lobby_pb2.py             # Generated protobuf code (lobby)
+    ├── lobby_pb2_grpc.py        # Generated gRPC stubs (lobby)
+    ├── action.proto             # Protobuf definition: Action Service
+    ├── action_server.py         # Action Service implementation (game logic)
+    ├── action_pb2.py            # Generated protobuf code (action)
+    └── action_pb2_grpc.py       # Generated gRPC stubs (action)
 ```
 
 ---
