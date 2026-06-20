@@ -7,7 +7,7 @@ from assets.character_helper import CharacterManager
 from assets.tile_helper import TileManager
 from assets.ui_helper import Button
 from client.utils import get_game_config
-from grcp_server import action_pb2_grpc, lobby_pb2_grpc
+from grpc_server import action_pb2_grpc, lobby_pb2_grpc
 from logger_config import get_logger
 
 logger = get_logger(__name__)

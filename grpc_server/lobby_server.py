@@ -5,8 +5,8 @@ import string
 import time
 from concurrent import futures
 
-import grcp_server.lobby_pb2 as lobby_pb2
-import grcp_server.lobby_pb2_grpc as lobby_pb2_grpc
+import grpc_server.lobby_pb2 as lobby_pb2
+import grpc_server.lobby_pb2_grpc as lobby_pb2_grpc
 import grpc
 from logger_config import get_logger
 from rabbitmq.rabbit_server import publish_event

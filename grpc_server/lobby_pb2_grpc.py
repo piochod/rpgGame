@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from grcp_server import lobby_pb2 as grcp__server_dot_lobby__pb2
+from grpc_server import lobby_pb2 as grcp__server_dot_lobby__pb2
 
 GRPC_GENERATED_VERSION = '1.81.0'
 GRPC_VERSION = grpc.__version__

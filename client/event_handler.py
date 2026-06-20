@@ -2,7 +2,7 @@ import random
 
 import pygame
 from assets.character_helper import Player
-from grcp_server import action_pb2, lobby_pb2
+from grpc_server import action_pb2, lobby_pb2
 from levels.level_manager import LevelManager
 from logger_config import get_logger
 

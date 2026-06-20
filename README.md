@@ -176,7 +176,7 @@ By default the client connects to `localhost`. To play across two machines:
 │   ├── rabbit_server.py         # Publisher (server-side, runs in Docker)
 │   └── rabbitmq_helper.py       # Subscriber (client-side, background thread with retry)
 │
-└── grcp_server/                 # gRPC microservices (run in Docker)
+└── grpc_server/                 # gRPC microservices (run in Docker)
     ├── lobby.proto              # Protobuf definition: Lobby Service
     ├── lobby_server.py          # Lobby Service implementation (sessions)
     ├── lobby_pb2.py             # Generated protobuf code (lobby)

@@ -3,8 +3,8 @@
 import time
 from concurrent import futures
 
-import grcp_server.action_pb2 as action_pb2
-import grcp_server.action_pb2_grpc as action_pb2_grpc
+import grpc_server.action_pb2 as action_pb2
+import grpc_server.action_pb2_grpc as action_pb2_grpc
 import grpc
 from logger_config import get_logger
 from rabbitmq.rabbit_server import publish_event
