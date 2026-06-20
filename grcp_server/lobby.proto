@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package lobby;
+
+// Lobby Service: Handles matchmaking and session management.
+service LobbyService {
+  rpc CreateLobby (CreateLobbyRequest) returns (LobbyResponse) {}
+  rpc JoinLobby (JoinLobbyRequest) returns (LobbyResponse) {}
+}
+
+message CreateLobbyRequest {
+  string player_id = 1;
+}
+
+message JoinLobbyRequest {
+  string lobby_code = 1;
+  string player_id = 2;
+}
+
+message LobbyResponse {
+  bool success = 1;
+  string message = 2;
+  string lobby_code = 3;
+  string assigned_role = 4;
+}

@@ -2,7 +2,7 @@ import random
 
 import pygame
 from assets.character_helper import Player
-from grcp_server import heist_pb2
+from grcp_server import action_pb2, lobby_pb2
 from levels.level_manager import LevelManager
 from logger_config import get_logger
 
@@ -40,8 +40,8 @@ def handle_host_events(event: pygame.event.Event, grpc_client, player_id: str) -
     Returns:
         tuple: (new_game_state, lobby_code)
     """
-    req = heist_pb2.CreateLobbyRequest(player_id=player_id)
-    res = grpc_client.createLobby(req)
+    req = lobby_pb2.CreateLobbyRequest(player_id=player_id)
+    res = grpc_client.lobby.CreateLobby(req)
     if res.success:
         return "LOBBY", res.lobby_code
     return "MENU", ""
@@ -66,8 +66,8 @@ def handle_join_input_events(
             return "MENU", "", ""
 
         if event.key == pygame.K_RETURN and len(typed_code) == 4:
-            req = heist_pb2.JoinLobbyRequest(lobby_code=typed_code, player_id=player_id)
-            res = grpc_client.joinLobby(req)
+            req = lobby_pb2.JoinLobbyRequest(lobby_code=typed_code, player_id=player_id)
+            res = grpc_client.lobby.JoinLobby(req)
             if res.success:
                 return "HACKER", res.lobby_code, typed_code
 
@@ -111,8 +111,8 @@ def handle_infiltrator_events(
         if terminal_pos:
             door_id = level_manager.get_door_for_terminal(terminal_pos)
             if door_id:
-                req = heist_pb2.AccessRequest(access_point_id=door_id, hacker_id=player_id, lobby_code=lobby_code)
-                grpc_client.grantNetworkAccess(req)
+                req = action_pb2.AccessRequest(access_point_id=door_id, hacker_id=player_id, lobby_code=lobby_code)
+                grpc_client.action.GrantNetworkAccess(req)
                 logger.info(f"Terminal at {terminal_pos} activated -> targeting {door_id}")
 
 
@@ -153,8 +153,8 @@ def handle_hacker_events(
             if hack_progress >= 3:
                 logger.info(f"Hack Complete! Unlocking {target_door_id}...")
                 has_hacked = True
-                req = heist_pb2.TargetRequest(target_id=target_door_id, hacker_id=player_id, lobby_code=lobby_code)
-                grpc_client.unlockDoor(req)
+                req = action_pb2.TargetRequest(target_id=target_door_id, hacker_id=player_id, lobby_code=lobby_code)
+                grpc_client.action.UnlockDoor(req)
             else:
                 target_x = random.randint(120, 250)
                 cursor_dir = (abs(cursor_dir) + 1) * (1 if cursor_dir > 0 else -1)

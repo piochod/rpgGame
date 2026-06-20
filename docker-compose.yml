@@ -13,12 +13,22 @@ services:
       timeout: 5s
       retries: 5
 
-  # 2. Server A (The Physical World)
-  server_a:
+  # 2. Lobby Service (Matchmaking & Sessions)
+  lobby_service:
     build: .
-    command: python -m grcp_server.server_a
+    command: python -m grcp_server.lobby_server
     ports:
-      - "50051:50051" # Expose the gRPC port
+      - "50051:50051"
     depends_on:
       rabbitmq:
-        condition: service_healthy # Wait for RabbitMQ to wake up before starting
+        condition: service_healthy
+
+  # 3. Action Service (Hacker & Infiltrator game actions)
+  action_service:
+    build: .
+    command: python -m grcp_server.action_server
+    ports:
+      - "50052:50052"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy

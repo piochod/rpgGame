@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package action;
+
+// Action Service: Handles all in-game actions for Hacker and Infiltrator roles.
+service ActionService {
+  // Hacker Actions
+  rpc UnlockDoor (TargetRequest) returns (ActionResponse) {}
+  rpc DisableCamera (TargetRequest) returns (ActionResponse) {}
+  rpc DisableLaser (TargetRequest) returns (ActionResponse) {}
+
+  // Infiltrator Actions
+  rpc GrantNetworkAccess (AccessRequest) returns (ActionResponse) {}
+}
+
+message TargetRequest {
+  string target_id = 1;
+  string hacker_id = 2;
+  string lobby_code = 3;
+}
+
+message AccessRequest {
+  string access_point_id = 1;
+  string hacker_id = 2;
+  string lobby_code = 3;
+}
+
+message ActionResponse {
+  bool success = 1;
+  string message = 2;
+}

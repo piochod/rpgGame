@@ -1,4 +1,5 @@
 import sys
+from dataclasses import dataclass
 
 import grpc
 import pygame
@@ -6,7 +7,7 @@ from assets.character_helper import CharacterManager
 from assets.tile_helper import TileManager
 from assets.ui_helper import Button
 from client.utils import get_game_config
-from grcp_server import heist_pb2_grpc
+from grcp_server import action_pb2_grpc, lobby_pb2_grpc
 from logger_config import get_logger
 
 logger = get_logger(__name__)
@@ -14,6 +15,14 @@ config = get_game_config()
 
 SCREEN_WIDTH = config["SCREEN_WIDTH"]
 SCREEN_HEIGHT = config["SCREEN_HEIGHT"]
+
+
+@dataclass
+class GrpcClients:
+    """Container for all gRPC service stubs."""
+
+    lobby: lobby_pb2_grpc.LobbyServiceStub
+    action: action_pb2_grpc.ActionServiceStub
 
 
 def init_display() -> tuple[pygame.Surface, pygame.time.Clock]:
@@ -30,18 +39,23 @@ def init_display() -> tuple[pygame.Surface, pygame.time.Clock]:
     return screen, clock
 
 
-def init_grpc_client() -> heist_pb2_grpc.HeistGameStub:
-    """Initializes the gRPC client and returns a stub for making RPC calls to the server.
+def init_grpc_client() -> GrpcClients:
+    """Initializes gRPC channels and returns stubs for all microservices.
 
     Returns:
-        heist_pb2_grpc.HeistGameStub: The gRPC client stub for the HeistGame service.
+        GrpcClients: Container with stubs for lobby and action services.
     """
-    logger.info("Initializing gRPC client...")
+    logger.info("Initializing gRPC clients...")
     try:
-        channel = grpc.insecure_channel("localhost:50051")
-        return heist_pb2_grpc.HeistGameStub(channel)
+        lobby_channel = grpc.insecure_channel("localhost:50051")
+        action_channel = grpc.insecure_channel("localhost:50052")
+
+        return GrpcClients(
+            lobby=lobby_pb2_grpc.LobbyServiceStub(lobby_channel),
+            action=action_pb2_grpc.ActionServiceStub(action_channel),
+        )
     except Exception as e:
-        logger.critical(f"Failed to connect to gRPC server. {e}")
+        logger.critical(f"Failed to connect to gRPC servers. {e}")
         sys.exit(1)
 
 
