@@ -72,8 +72,11 @@ def render_lobby(screen: pygame.Surface, lobby_code: str, fonts: dict, screen_wi
         screen_width (int): The width of the screen in pixels.
     """
     screen.fill((20, 20, 30))
-    title = fonts["normal"].render(f"LOBBY: {lobby_code}", True, (0, 255, 0))
-    screen.blit(title, (screen_width // 2 - title.get_width() // 2, 200))
+    label = fonts["normal"].render("LOBBY CODE", True, (0, 255, 0))
+    screen.blit(label, (screen_width // 2 - label.get_width() // 2, 170))
+
+    code = fonts["code"].render(lobby_code, True, (0, 255, 0))
+    screen.blit(code, (screen_width // 2 - code.get_width() // 2, 210))
 
     sub = fonts["normal"].render("WAITING FOR HACKER...", True, (255, 150, 0))
     screen.blit(sub, (screen_width // 2 - sub.get_width() // 2, 300))

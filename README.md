@@ -2,6 +2,8 @@
 
 A 2-player cooperative heist game built for a distributed systems class. One player is the **Infiltrator** (top-down movement, interacts with the physical world) and the other is the **Hacker** (solves minigames remotely to open doors). Communication between players happens entirely through a distributed backend using **gRPC** and **RabbitMQ**.
 
+The Infiltrator must avoid patrolling **guard robots** that sweep each level with a directional field-of-view. Getting spotted raises an alarm that disrupts the Hacker's minigame — and getting caught **three times** ends the run.
+
 ---
 
 ## Architecture
@@ -30,20 +32,20 @@ The backend is split into independently deployable **microservices**, each with 
 | **Action Service** | 50052 | `UnlockDoor`, `DisableCamera`, `DisableLaser`, `GrantNetworkAccess` — in-game actions |
 
 - **gRPC** – Each microservice exposes a focused set of RPCs via its own protobuf service definition.
-- **RabbitMQ** – Fanout exchange broadcasts real-time events (`START_GAME`, `USB_PLUGGED`, `DOOR_HACKED`) to all connected clients.
+- **RabbitMQ** – Fanout exchange broadcasts real-time events (`START_GAME`, `USB_PLUGGED`, `DOOR_HACKED`, `ALARM`, `GAME_OVER`, `GAME_WON`) to all connected clients.
 - **Pygame** – Each player runs their own game window locally.
 
 ---
 
 ## Tech Stack
 
-| Component        | Technology              |
-| ---------------- | ----------------------- |
-| Game Client      | Python 3.11, Pygame     |
-| RPC Framework    | gRPC (protobuf)         |
-| Message Broker   | RabbitMQ 3 (AMQP)       |
-| Containerization | Docker, Docker Compose  |
-| Assets           | Kenney.nl tilesets & UI |
+| Component        | Technology                            |
+| ---------------- | ------------------------------------- |
+| Game Client      | Python 3.11, Pygame                   |
+| RPC Framework    | gRPC (protobuf)                       |
+| Message Broker   | RabbitMQ 3 (AMQP)                     |
+| Containerization | Docker, Docker Compose                |
+| Assets           | Jerom & Kenney.nl tilesets, Kenney UI |
 
 ---
 
@@ -122,6 +124,7 @@ By default the client connects to `localhost`. To play across two machines:
 - **WASD** – Move around the map
 - **E** – Interact with terminals (plugs USB, enabling the Hacker to open the linked door)
 - Walk into **vents** to advance to the next level
+- **Avoid the guard robots!** Each guard patrols the open area with a visible field-of-view cone (blocked by walls). Stepping into a cone trips the alarm. The on-screen **DETECTED x / 3** counter tracks how many times you've been spotted on the current level.
 
 ### Hacker (Player 2)
 
@@ -129,13 +132,28 @@ By default the client connects to `localhost`. To play across two machines:
 - A timing minigame appears: press **Space** when the white cursor is inside the green zone
 - Successfully hit **3 nodes** to unlock the door
 - After unlocking, wait for the Infiltrator to find the next terminal
+- If the Infiltrator is spotted, an **ALARM** fires and your hack progress is reset to zero
+
+### Guards & Alarms
+
+- Guards move slowly and turn at walls, sweeping a directional vision cone in their facing direction.
+- Leaving and re-entering a cone re-triggers detection each time.
+- The detection counter **resets at the start of every level**.
+- Being detected **3 times** ends the run with a **GAME OVER** screen.
+- Later levels spawn **additional guards** for increased difficulty.
+
+### End States
+
+- **GAME OVER** – The Infiltrator was caught three times. Press **Esc** to return to the main menu.
+- **HEIST COMPLETE** – The Infiltrator reached the vent on the final level. Press **Esc** to return to the main menu.
 
 ### Game Flow (per level)
 
-1. Infiltrator finds an accessible terminal → presses E
+1. Infiltrator finds an accessible terminal → presses E (while dodging guards)
 2. Hacker's screen activates → completes the minigame → door opens
 3. Infiltrator walks through the opened door → finds the next terminal → repeat
-4. Final door leads to a vent → next level loads
+4. Final door leads to a vent → next level loads (guards reset, an extra guard may appear)
+5. Reaching the vent on the last level wins the heist
 
 ---
 
@@ -157,20 +175,23 @@ By default the client connects to `localhost`. To play across two machines:
 │
 ├── assets/                      # Pygame helper modules (code only)
 │   ├── character_helper.py      # Sprite sheet manager & Player class
-│   ├── tile_helper.py           # Tileset loading & slicing
+│   ├── tile_helper.py           # Tileset loading & slicing (with upscaling support)
+│   ├── guard_helper.py          # Patrolling guard robot with FOV/line-of-sight detection
 │   └── ui_helper.py             # Button widget
 │
 ├── resources/                   # Raw data files (no Python)
 │   ├── fonts/                   # Kenney Future .ttf fonts
 │   ├── ui_textures/             # Kenney UI button/bar PNGs
-│   ├── tilesetv1.0.png          # Tile sprite sheet
-│   ├── tilesetv1.0_config.json  # Tile definitions
+│   ├── Jerom_topRL_CCBYSA3.png  # Active tile + guard-robot sprite sheet (16px)
+│   ├── jerom_tileset_config.json # Active tile definitions (16px → 32px render)
+│   ├── tilesetv1.0.png          # Legacy tile sprite sheet
+│   ├── tilesetv1.0_config.json  # Legacy tile definitions
 │   ├── character_maleAdventurer_sheet.png
 │   └── character_maleAdventurer_sheet.xml
 │
 ├── levels/                      # Level definitions & logic
 │   ├── level_manager.py         # Map parsing, collision, door/terminal O(1) lookups
-│   └── levels.json              # Level maps with terminal→door coordinate mappings
+│   └── levels.json              # Level maps with terminal→door mappings & guard spawns
 │
 ├── rabbitmq/                    # Message broker layer
 │   ├── rabbit_server.py         # Publisher (server-side, runs in Docker)

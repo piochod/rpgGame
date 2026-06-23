@@ -69,6 +69,7 @@ def main() -> None:
         "normal": pygame.font.Font("resources/fonts/Kenney_Future.ttf", 24),
         "narrow": pygame.font.Font("resources/fonts/Kenney_Future_Narrow.ttf", 24),
         "title": pygame.font.Font("resources/fonts/Kenney_Future.ttf", 36),
+        "code": pygame.font.Font(None, 48),
     }
 
     tiles = {
