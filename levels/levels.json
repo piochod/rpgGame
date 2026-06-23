@@ -3,6 +3,7 @@
     {
       "id": "heist_01",
       "name": "The Vault",
+      "guard_spawns": [[10, 14]],
       "terminal_door_links": [
         { "terminal": [11, 6], "door": [4, 10] },
         { "terminal": [4, 12], "door": [4, 14] }
@@ -32,6 +33,10 @@
     {
       "id": "heist_02",
       "name": "Server Room",
+      "guard_spawns": [
+        [13, 12],
+        [13, 4]
+      ],
       "terminal_door_links": [
         { "terminal": [11, 3], "door": [4, 6] },
         { "terminal": [4, 8], "door": [4, 11] }
@@ -61,6 +66,10 @@
     {
       "id": "heist_03",
       "name": "Penthouse",
+      "guard_spawns": [
+        [14, 12],
+        [14, 4]
+      ],
       "terminal_door_links": [
         { "terminal": [4, 3], "door": [9, 14] },
         { "terminal": [9, 11], "door": [11, 11] }

@@ -9,6 +9,36 @@ from logger_config import get_logger
 logger = get_logger(__name__)
 
 
+def publish_game_event(
+    payload: dict, host: str = "localhost", port: int = 5672, exchange_name: str = "game_events"
+) -> None:
+    """Publishes a game event from a client to the RabbitMQ fanout exchange.
+
+    The publish runs in a short-lived background thread so it never stalls the
+    Pygame render loop.
+
+    Args:
+        payload (dict): The JSON-serializable event payload.
+        host (str): The RabbitMQ host to connect to.
+        port (int): The RabbitMQ AMQP port.
+        exchange_name (str): The fanout exchange to publish to.
+    """
+
+    def _publish() -> None:
+        try:
+            params = pika.ConnectionParameters(host=host, port=port)
+            connection = pika.BlockingConnection(params)
+            channel = connection.channel()
+            channel.exchange_declare(exchange=exchange_name, exchange_type="fanout")
+            channel.basic_publish(exchange=exchange_name, routing_key="", body=json.dumps(payload))
+            connection.close()
+            logger.info(f"[CLIENT PUBLISHED] {exchange_name}: {payload}")
+        except Exception as e:
+            logger.error(f"Failed to publish game event: {e}")
+
+    threading.Thread(target=_publish, daemon=True).start()
+
+
 class GameEventSubscriber:
     """Listens for game events from RabbitMQ in a background thread and provides them to Pygame."""
 

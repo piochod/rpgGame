@@ -16,7 +16,7 @@ services:
   # 2. Lobby Service (Matchmaking & Sessions)
   lobby_service:
     build: .
-    command: python -m grcp_server.lobby_server
+    command: python -m grpc_server.lobby_server
     ports:
       - "50051:50051"
     depends_on:
@@ -26,7 +26,7 @@ services:
   # 3. Action Service (Hacker & Infiltrator game actions)
   action_service:
     build: .
-    command: python -m grcp_server.action_server
+    command: python -m grpc_server.action_server
     ports:
       - "50052:50052"
     depends_on:

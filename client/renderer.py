@@ -1,5 +1,6 @@
 import pygame
 from assets.character_helper import Player
+from assets.guard_helper import Guard
 from levels.level_manager import LevelManager
 
 
@@ -89,6 +90,7 @@ def render_hacker(
     cursor_x: int,
     target_x: int,
     screen_width: int,
+    alarm_active: bool = False,
 ) -> None:
     """Renders the hacker mini-game screen.
 
@@ -100,6 +102,7 @@ def render_hacker(
         cursor_x (int): Current x-position of the moving cursor.
         target_x (int): x-position of the green target zone.
         screen_width (int): The width of the screen in pixels.
+        alarm_active (bool): Whether a guard alarm is currently disrupting the hack.
     """
     screen.fill((10, 20, 10))
     title = fonts["normal"].render("CYBER LINK ACTIVE", True, (0, 255, 0))
@@ -134,8 +137,22 @@ def render_hacker(
         status = fonts["normal"].render("STATUS: WAITING FOR INFILTRATOR USB...", True, (255, 0, 0))
         screen.blit(status, (screen_width // 2 - status.get_width() // 2, 200))
 
+    if alarm_active:
+        alarm_text = fonts["normal"].render("!! ALARM - SIGNAL DISRUPTED !!", True, (255, 40, 40))
+        screen.blit(alarm_text, (screen_width // 2 - alarm_text.get_width() // 2, 500))
 
-def render_infiltrator(screen: pygame.Surface, level_manager: LevelManager, tiles: dict, player: Player) -> None:
+
+def render_infiltrator(
+    screen: pygame.Surface,
+    level_manager: LevelManager,
+    tiles: dict,
+    player: Player,
+    guards: list[Guard] | None = None,
+    guard_alerted: bool = False,
+    detection_count: int = 0,
+    max_detections: int = 3,
+    fonts: dict | None = None,
+) -> None:
     """Renders the infiltrator screen.
 
     Args:
@@ -143,6 +160,11 @@ def render_infiltrator(screen: pygame.Surface, level_manager: LevelManager, tile
         level_manager (LevelManager): The current level's manager instance.
         tiles (dict): Dictionary of tile surfaces keyed by name.
         player (Player): The player object to draw.
+        guards (list[Guard] | None): The patrolling guards to draw, if any.
+        guard_alerted (bool): Whether a guard has recently spotted the player.
+        detection_count (int): How many times the player has been detected.
+        max_detections (int): Detections allowed before game over.
+        fonts (dict | None): Font objects used to draw the detection counter.
     """
     screen.fill((0, 0, 0))
     for row_index, row_list in enumerate(level_manager.game_map):
@@ -164,4 +186,54 @@ def render_infiltrator(screen: pygame.Surface, level_manager: LevelManager, tile
             elif tile_char == "O":
                 screen.blit(tiles["door_opened"], (x, y))
 
+    if guards:
+        for guard in guards:
+            guard.draw(screen, alerted=guard_alerted)
+
     player.draw(screen)
+
+    if fonts is not None:
+        color = (255, 60, 60) if detection_count >= max_detections - 1 else (255, 255, 255)
+        counter = fonts["normal"].render(f"DETECTED: {detection_count} / {max_detections}", True, color)
+        screen.blit(counter, (42, 42))
+
+
+def render_game_over(screen: pygame.Surface, fonts: dict, screen_width: int, screen_height: int) -> None:
+    """Renders the game over screen.
+
+    Args:
+        screen (pygame.Surface): The Pygame screen surface.
+        fonts (dict): Dictionary of font objects keyed by name.
+        screen_width (int): The width of the screen in pixels.
+        screen_height (int): The height of the screen in pixels.
+    """
+    screen.fill((25, 0, 0))
+    title = fonts["title"].render("GAME OVER", True, (255, 40, 40))
+    screen.blit(title, (screen_width // 2 - title.get_width() // 2, screen_height // 2 - 60))
+
+    sub = fonts["normal"].render("THE INFILTRATOR WAS CAUGHT", True, (255, 150, 150))
+    screen.blit(sub, (screen_width // 2 - sub.get_width() // 2, screen_height // 2 + 10))
+
+    hint = fonts["normal"].render("[ESC] MAIN MENU", True, (200, 200, 200))
+    screen.blit(hint, (screen_width // 2 - hint.get_width() // 2, screen_height // 2 + 70))
+
+
+def render_game_won(screen: pygame.Surface, fonts: dict, screen_width: int, screen_height: int) -> None:
+    """Renders the victory screen.
+
+    Args:
+        screen (pygame.Surface): The Pygame screen surface.
+        fonts (dict): Dictionary of font objects keyed by name.
+        screen_width (int): The width of the screen in pixels.
+        screen_height (int): The height of the screen in pixels.
+    """
+    screen.fill((0, 25, 10))
+    title = fonts["title"].render("HEIST COMPLETE", True, (0, 255, 120))
+    screen.blit(title, (screen_width // 2 - title.get_width() // 2, screen_height // 2 - 60))
+
+    sub = fonts["normal"].render("YOU ESCAPED WITH THE LOOT", True, (150, 255, 180))
+    screen.blit(sub, (screen_width // 2 - sub.get_width() // 2, screen_height // 2 + 10))
+
+    hint = fonts["normal"].render("[ESC] MAIN MENU", True, (200, 200, 200))
+    screen.blit(hint, (screen_width // 2 - hint.get_width() // 2, screen_height // 2 + 70))
+

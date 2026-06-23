@@ -1,0 +1,13 @@
+{
+  "TILE_SIZE": 16,
+  "RENDER_SIZE": 32,
+  "tiles": {
+    "floor_plain": { "col": 0, "row": 1.5 },
+    "wall": { "col": 7, "row": 5 },
+    "door_red": { "col": 3, "row": 5 },
+    "door_green": { "col": 3, "row": 6 },
+    "door_opened": { "col": 1, "row": 4 },
+    "terminal": { "col": 4.5, "row": 5 },
+    "vent": { "col": 2, "row": 1.5}
+  }
+}

@@ -62,12 +62,20 @@ class TileManager:
             config = json.load(file)
 
         default_size = config["TILE_SIZE"]
+        render_size = config.get("RENDER_SIZE")
 
         for name, data in config["tiles"].items():
             w = data.get("width", default_size)
             h = data.get("height", default_size)
 
-            self.tiles[name] = self.sprite_sheet.get_tile(data["col"], data["row"], w, h)
+            tile = self.sprite_sheet.get_tile(data["col"], data["row"], w, h)
+
+            # Sprite sheets authored at a smaller native size (e.g. 16px) can be
+            # upscaled to the in-game render size so they fill the tile grid.
+            if render_size is not None and (w, h) != (render_size, render_size):
+                tile = pygame.transform.scale(tile, (render_size, render_size))
+
+            self.tiles[name] = tile
 
     def get(self, tile_name: str) -> pygame.Surface:
         """Safely retrieves a tile surface by its name.

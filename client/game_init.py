@@ -67,7 +67,7 @@ def load_assets() -> tuple[TileManager, CharacterManager, dict]:
     """
     logger.info("Loading assets...")
     try:
-        tile_manager = TileManager("resources/tilesetv1.0.png", "resources/tilesetv1.0_config.json")
+        tile_manager = TileManager("resources/Jerom_topRL_CCBYSA3.png", "resources/jerom_tileset_config.json")
         char_manager = CharacterManager(
             "resources/character_maleAdventurer_sheet.png", "resources/character_maleAdventurer_sheet.xml"
         )
